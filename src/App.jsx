@@ -103,7 +103,7 @@ ${SOURCES.filter((s) => selectedSeries.includes(s.series))
 Based on your knowledge of recent regulatory developments in these series (2024-2025 season changes, upcoming 2026 regulations, technical directives, sporting penalties, cost cap adjustments), produce the weekly digest. Focus on the most technically significant and audience-relevant updates.`;
 
     try {
-      const response = await fetch("https://pitlane-proxy.pitlaneregs.workers.dev", {
+      const response = await fetch("/api/proxy", {
        method: "POST",
        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
