@@ -127,7 +127,7 @@ Based on your knowledge of recent regulatory developments in these series (2024-
        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
+          max_tokens: 800,
           system: SYSTEM_PROMPT,
           messages: [{ role: "user", content: userPrompt }],
         }),
