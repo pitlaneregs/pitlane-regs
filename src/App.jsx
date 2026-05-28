@@ -35,34 +35,15 @@ const SOURCES = [
   },
 ];
 
-const SYSTEM_PROMPT = `You are RegBot, an expert motorsport regulations analyst for PitLane Regs — the definitive source for motorsport regulatory intelligence.
-
-Your job is to analyze motorsport regulations sources and produce a structured weekly digest.
-
-For each series provided, you must:
-1. Identify the most significant recent regulatory changes or updates
-2. Explain the technical/sporting implications in plain English
-3. Rate the impact: LOW / MEDIUM / HIGH
-4. Flag any cross-series patterns (e.g. safety trends, cost-cap themes)
-
-Output ONLY valid JSON in this exact structure:
+const SYSTEM_PROMPT = `You are a motorsport regulations analyst. Return ONLY valid JSON:
 {
-  "digest_title": "string — punchy weekly headline",
-  "digest_date": "string — current week",
-  "summary": "string — 2-3 sentence executive summary of the week in regs",
-  "items": [
-    {
-      "series": "F1|MotoGP|WRC|Formula E",
-      "headline": "string — sharp news headline",
-      "detail": "string — 3-4 sentences explaining what changed and why it matters",
-      "impact": "LOW|MEDIUM|HIGH",
-      "category": "Technical|Sporting|Financial|Safety"
-    }
-  ],
-  "cross_series_insight": "string — 2-3 sentences on any broader regulatory trends this week"
-}
+  "digest_title": "string",
+  "digest_date": "string",
+  "summary": "string",
+  "items": [{"series": "string", "headline": "string", "detail": "string", "impact": "LOW|MEDIUM|HIGH", "category": "Technical|Sporting|Financial|Safety"}],
+  "cross_series_insight": "string"
+}`;
 
-Be factual, precise, and write for an audience of technically-literate motorsport fans and engineers. No fluff.`;
 
 const seriesColors = {
   F1: "#E8002D",
@@ -127,7 +108,7 @@ Based on your knowledge of recent regulatory developments in these series (2024-
        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
-          max_tokens: 800,
+          max_tokens: 300,
           system: SYSTEM_PROMPT,
           messages: [{ role: "user", content: userPrompt }],
         }),
