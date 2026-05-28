@@ -125,9 +125,6 @@ Based on your knowledge of recent regulatory developments in these series (2024-
       const response = await fetch("https://pitlane-proxy.pitlaneregs.workers.dev", {
        method: "POST",
        headers: { "Content-Type": "application/json" },
-  "x-api-key": import.meta.env.VITE_ANTHROPIC_KEY,
-  "anthropic-version": "2023-06-01",
-  "anthropic-dangerous-direct-browser-access": "true"},,
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
           max_tokens: 1000,
