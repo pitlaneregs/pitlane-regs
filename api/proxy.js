@@ -7,23 +7,20 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  const chunks = [];
-  for await (const chunk of req) {
-    chunks.push(chunk);
-  }
-  const rawBody = Buffer.concat(chunks).toString('utf8');
+  const body = typeof req.body === 'string' 
+    ? req.body 
+    : JSON.stringify(req.body);
 
-  const url = 'https://api.anthropic.com/v1/messages';
-  const key = process.env.VITE_ANTHROPIC_KEY;
+  console.log('BODY:', body ? body.substring(0, 50) : 'EMPTY');
 
-  const response = await fetch(url, {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': key,
+      'x-api-key': process.env.VITE_ANTHROPIC_KEY,
       'anthropic-version': '2023-06-01',
     },
-    body: rawBody,
+    body: body,
   });
 
   const text = await response.text();
