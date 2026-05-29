@@ -14,6 +14,7 @@ export default async function handler(req, res) {
   const options = {
     hostname: 'api.anthropic.com',
     path: '/v1/messages',
+    port: 443,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
