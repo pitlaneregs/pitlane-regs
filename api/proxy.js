@@ -12,6 +12,8 @@ export default async function handler(req, res) {
     : JSON.stringify(req.body);
 
   console.log('BODY:', body ? body.substring(0, 50) : 'EMPTY');
+console.log('BODY TYPE:', typeof req.body);
+console.log('BODY VALUE:', JSON.stringify(req.body));
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
