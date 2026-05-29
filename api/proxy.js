@@ -10,7 +10,10 @@ export default async function handler(req, res) {
   const bodyString = JSON.stringify(req.body);
   const key = process.env.VITE_ANTHROPIC_KEY;
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetch('https://api.anthropic.com/v1/messages', 
+console.log('Response status:', response.status);
+console.log('Response length:', text.length);
+console.log('Response preview:', text.substring(0, 100));
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
