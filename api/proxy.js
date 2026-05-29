@@ -1,5 +1,3 @@
-import https from 'https';
-
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -10,35 +8,20 @@ export default async function handler(req, res) {
   }
 
   const bodyString = JSON.stringify(req.body);
+  const key = process.env.VITE_ANTHROPIC_KEY;
 
-  const options = {
-    hostname: 'api.anthropic.com',
-    path: '/v1/messages',
-    port: 443,
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': process.env.VITE_ANTHROPIC_KEY,
+      'x-api-key': key,
       'anthropic-version': '2023-06-01',
-      'Content-Length': Buffer.byteLength(bodyString),
+      'anthropic-beta': 'messages-2023-06-01'
     },
-  };
-
-  return new Promise((resolve) => {
-    const apiReq = https.request(options, (apiRes) => {
-      let data = '';
-      apiRes.on('data', (chunk) => { data += chunk; });
-      apiRes.on('end', () => {
-        res.setHeader('Content-Type', 'application/json');
-        res.status(200).send(data);
-        resolve();
-      });
-    });
-    apiReq.on('error', (e) => {
-      res.status(500).json({ error: e.message });
-      resolve();
-    });
-    apiReq.write(bodyString);
-    apiReq.end();
+    body: bodyString,
   });
+
+  const text = await response.text();
+  res.setHeader('Content-Type', 'application/json');
+  res.status(response.status).send(text);
 }
