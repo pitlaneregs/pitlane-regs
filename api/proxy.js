@@ -7,13 +7,7 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  const body = typeof req.body === 'string' 
-    ? req.body 
-    : JSON.stringify(req.body);
-
-  console.log('BODY:', body ? body.substring(0, 50) : 'EMPTY');
-console.log('BODY TYPE:', typeof req.body);
-console.log('BODY VALUE:', JSON.stringify(req.body));
+  const bodyString = JSON.stringify(req.body);
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -22,7 +16,7 @@ console.log('BODY VALUE:', JSON.stringify(req.body));
       'x-api-key': process.env.VITE_ANTHROPIC_KEY,
       'anthropic-version': '2023-06-01',
     },
-    body: body,
+    body: bodyString,
   });
 
   const text = await response.text();
