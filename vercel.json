@@ -3,5 +3,8 @@
     "api/proxy.js": {
       "memory": 256
     }
-  }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" }
+  ]
 }
