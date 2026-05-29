@@ -1,11 +1,3 @@
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '1mb',
-    },
-  },
-};
-
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -15,6 +7,12 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(chunk);
+  }
+  const rawBody = Buffer.concat(chunks).toString('utf8');
+
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -22,7 +20,7 @@ export default async function handler(req, res) {
       'x-api-key': process.env.VITE_ANTHROPIC_KEY,
       'anthropic-version': '2023-06-01',
     },
-    body: JSON.stringify(req.body),
+    body: rawBody,
   });
 
   const text = await response.text();
