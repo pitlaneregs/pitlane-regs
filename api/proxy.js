@@ -7,25 +7,26 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  const bodyString = JSON.stringify(req.body);
-  const key = process.env.VITE_ANTHROPIC_KEY;
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+  }
+  const rawBody = Buffer.concat(chunks).toString('utf8');
+
+  console.log('RAW BODY:', rawBody.substring(0, 80));
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': key,
+      'x-api-key': process.env.VITE_ANTHROPIC_KEY,
       'anthropic-version': '2023-06-01',
     },
-    body: bodyString,
+    body: rawBody,
   });
 
   const text = await response.text();
-  console.log('Response status:', response.status);
-console.log('Response length:', text.length);
-console.log('Response preview:', text.substring(0, 100));
-
-  console.log('Status:', response.status, 'Length:', text.length, 'Preview:', text.substring(0, 50));
+  console.log('STATUS:', response.status, 'LENGTH:', text.length);
   res.setHeader('Content-Type', 'application/json');
   return res.status(200).send(text);
 }
