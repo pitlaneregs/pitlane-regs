@@ -35,14 +35,9 @@ const SOURCES = [
   },
 ];
 
-const SYSTEM_PROMPT = `You are a motorsport regulations analyst. Return ONLY valid JSON:
-{
-  "digest_title": "string",
-  "digest_date": "string",
-  "summary": "string",
-  "items": [{"series": "string", "headline": "string", "detail": "string", "impact": "LOW|MEDIUM|HIGH", "category": "Technical|Sporting|Financial|Safety"}],
-  "cross_series_insight": "string"
-}`;
+const SYSTEM_PROMPT = `Return ONLY this JSON, no other text:
+{"digest_title":"string","digest_date":"string","summary":"string","items":[{"series":"string","headline":"string","detail":"string","impact":"LOW","category":"Technical"}],"cross_series_insight":"string"}`;
+
 
 
 const seriesColors = {
@@ -91,7 +86,8 @@ export default function PitLaneRegs() {
     setDigest(null);
     setActiveItem(null);
 
-    const userPrompt = `Generate the weekly PitLane Regs digest for the following series: ${selectedSeries.join(", ")}.
+    const userPrompt = `Write a motorsport regulations digest for ${selectedSeries.join(", ")} for ${new Date().toLocaleDateString("en-GB")}. Return ONLY valid JSON matching the schema exactly.`;
+
 
 Today's date: ${new Date().toLocaleDateString("en-GB", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}.
 
