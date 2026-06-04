@@ -289,7 +289,7 @@ Based on your knowledge of recent regulatory developments in these series (2024-
 
             {/* Footer */}
             <div style={styles.digestFooter}>
-              <span>PitLane Regs · AI-powered regulatory monitoring</span>
+              <span>PitLane Regs · AI-powered regulatory monitoring · <a href="https://pitlaneregs.beehiiv.com/subscribe" style={{color: "#E8002D", textDecoration: "none"}}>Subscribe to newsletter →</a></span>
               <span style={{ color: "#333" }}>·</span>
               <span>Sources: FIA · FIM · WRC · Formula E</span>
             </div>
