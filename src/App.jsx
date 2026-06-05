@@ -31,34 +31,19 @@ export default function PitLaneRegs() {
     );
   };
 
-  const runAgent = async () => {
-    if (selectedSeries.length === 0) return;
+    const runAgent = async () => {
     setLoading(true);
     setError(null);
     setDigest(null);
     setActiveItem(null);
 
-    const userPrompt = `Write a motorsport regulations digest for ${selectedSeries.join(", ")} for ${new Date().toLocaleDateString("en-GB")}. Return ONLY valid JSON matching the schema exactly.`;
-
     try {
-      const response = await fetch("/api/proxy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-haiku-4-5-20251001",
-          max_tokens: 1300,
-          system: SYSTEM_PROMPT,
-          messages: [{ role: "user", content: userPrompt }],
-        }),
-      });
-
+      const response = await fetch("/api/get-digest");
       const data = await response.json();
-      const raw = data.content?.find((b) => b.type === "text")?.text || "";
-      const clean = raw.replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(clean);
-      setDigest(parsed);
+      if (data.error) throw new Error(data.error);
+      setDigest(data);
     } catch (err) {
-      setError("Agent error: " + err.message);
+      setError("Error loading digest: " + err.message);
     } finally {
       setLoading(false);
     }
