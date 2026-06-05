@@ -1,64 +1,22 @@
 import { useState, useEffect } from "react";
 
 const SOURCES = [
-  {
-    id: "fia-f1",
-    series: "F1",
-    name: "FIA Formula 1 Regulations",
-    url: "https://www.fia.com/regulation/category/110",
-    color: "#E8002D",
-    icon: "⬡",
-  },
-  {
-    id: "motogp",
-    series: "MotoGP",
-    name: "MotoGP Rules & Regulations",
-    url: "https://www.motogp.com/en/news/rules-and-regulations",
-    color: "#E63329",
-    icon: "◈",
-  },
-  {
-    id: "wrc",
-    series: "WRC",
-    name: "FIA World Rally Championship",
-    url: "https://www.fia.com/regulation/category/185",
-    color: "#00A650",
-    icon: "◆",
-  },
-  {
-    id: "formula-e",
-    series: "Formula E",
-    name: "FIA Formula E Regulations",
-    url: "https://www.fia.com/regulation/category/1491",
-    color: "#00BFFF",
-    icon: "◉",
-  },
+  { id: "fia-f1", series: "F1", name: "FIA Formula 1 Regulations", url: "https://www.fia.com/regulation/category/110", color: "#E8002D", icon: "⬡" },
+  { id: "motogp", series: "MotoGP", name: "MotoGP Rules & Regulations", url: "https://www.motogp.com/en/news/rules-and-regulations", color: "#E63329", icon: "◈" },
+  { id: "wrc", series: "WRC", name: "FIA World Rally Championship", url: "https://www.fia.com/regulation/category/185", color: "#00A650", icon: "◆" },
+  { id: "formula-e", series: "Formula E", name: "FIA Formula E Regulations", url: "https://www.fia.com/regulation/category/1491", color: "#00BFFF", icon: "◉" },
 ];
 
 const SYSTEM_PROMPT = `Return ONLY this JSON, no other text:
 {"digest_title":"string","digest_date":"string","summary":"string","items":[{"series":"string","headline":"string","detail":"string","impact":"LOW","category":"Technical"}],"cross_series_insight":"string"}`;
 
-
-
-const seriesColors = {
-  F1: "#E8002D",
-  MotoGP: "#FF6B35",
-  WRC: "#00A650",
-  "Formula E": "#00BFFF",
-};
-
+const seriesColors = { F1: "#E8002D", MotoGP: "#FF6B35", WRC: "#00A650", "Formula E": "#00BFFF" };
 const impactColors = {
   HIGH: { bg: "#FF2D2D22", border: "#FF2D2D", text: "#FF6B6B" },
   MEDIUM: { bg: "#FF890022", border: "#FF8900", text: "#FFB347" },
   LOW: { bg: "#00FF8822", border: "#00FF88", text: "#66FFB2" },
 };
-
-const categoryIcons = {
-  Technical: "⚙",
-  Sporting: "🏁",
-  Financial: "💰",
-  Safety: "🛡",
-};
+const categoryIcons = { Technical: "⚙", Sporting: "🏁", Financial: "💰", Safety: "🛡" };
 
 export default function PitLaneRegs() {
   const [digest, setDigest] = useState(null);
@@ -66,12 +24,6 @@ export default function PitLaneRegs() {
   const [error, setError] = useState(null);
   const [selectedSeries, setSelectedSeries] = useState(["F1", "MotoGP", "WRC", "Formula E"]);
   const [activeItem, setActiveItem] = useState(null);
-  const [tick, setTick] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => setTick((t) => t + 1), 50);
-    return () => clearInterval(interval);
-  }, []);
 
   const toggleSeries = (series) => {
     setSelectedSeries((prev) =>
@@ -88,22 +40,12 @@ export default function PitLaneRegs() {
 
     const userPrompt = `Write a motorsport regulations digest for ${selectedSeries.join(", ")} for ${new Date().toLocaleDateString("en-GB")}. Return ONLY valid JSON matching the schema exactly.`;
 
-
-Today's date: ${new Date().toLocaleDateString("en-GB", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}.
-
-For context, here are the official regulation sources being monitored:
-${SOURCES.filter((s) => selectedSeries.includes(s.series))
-  .map((s) => `- ${s.series}: ${s.url}`)
-  .join("\n")}
-
-Based on your knowledge of recent regulatory developments in these series (2024-2025 season changes, upcoming 2026 regulations, technical directives, sporting penalties, cost cap adjustments), produce the weekly digest. Focus on the most technically significant and audience-relevant updates.`;
-
     try {
       const response = await fetch("/api/proxy", {
-       method: "POST",
-       headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
+          model: "claude-haiku-4-5-20251001",
           max_tokens: 1300,
           system: SYSTEM_PROMPT,
           messages: [{ role: "user", content: userPrompt }],
@@ -126,7 +68,6 @@ Based on your knowledge of recent regulatory developments in these series (2024-
     <div style={styles.root}>
       <style>{css}</style>
 
-      {/* Header */}
       <header style={styles.header}>
         <div style={styles.headerInner}>
           <div style={styles.logoBlock}>
@@ -149,10 +90,7 @@ Based on your knowledge of recent regulatory developments in these series (2024-
         </div>
       </header>
 
-      {/* Main */}
       <main style={styles.main}>
-
-        {/* Control Panel */}
         <section style={styles.controlPanel}>
           <div style={styles.controlHeader}>
             <span style={styles.sectionLabel}>// SERIES MONITOR</span>
@@ -199,26 +137,28 @@ Based on your knowledge of recent regulatory developments in these series (2024-
                 RUN WEEKLY DIGEST
               </span>
             )}
-                  </button>
+          </button>
+
           <a
             href="https://pitlaneregs.beehiiv.com/subscribe"
             target="_blank"
+            rel="noopener noreferrer"
             style={{
               display: "block",
               textAlign: "center",
-              padding: "10px",
-              marginTop: 8,
-              fontSize: 11,
+              padding: "12px",
+              marginTop: 12,
+              fontSize: 12,
               color: "#E8002D",
               letterSpacing: "0.1em",
               textDecoration: "none",
+              border: "1px solid #E8002D22",
             }}
           >
             ✉ Subscribe to weekly newsletter →
           </a>
         </section>
 
-        {/* Loading State */}
         {loading && (
           <section style={styles.loadingSection}>
             <div style={styles.loadingGrid}>
@@ -232,18 +172,14 @@ Based on your knowledge of recent regulatory developments in these series (2024-
           </section>
         )}
 
-        {/* Error */}
         {error && (
           <div style={styles.errorBox}>
             <span style={{ color: "#FF4444" }}>⚠ </span>{error}
           </div>
         )}
 
-        {/* Digest Output */}
         {digest && !loading && (
           <div style={styles.digestContainer} className="digest-reveal">
-
-            {/* Digest Header */}
             <div style={styles.digestHeader}>
               <div style={styles.digestMeta}>
                 <span style={styles.digestLabel}>WEEKLY DIGEST</span>
@@ -253,7 +189,6 @@ Based on your knowledge of recent regulatory developments in these series (2024-
               <p style={styles.digestSummary}>{digest.summary}</p>
             </div>
 
-            {/* Items */}
             <div style={styles.itemsGrid}>
               {digest.items?.map((item, i) => {
                 const seriesColor = seriesColors[item.series] || "#888";
@@ -276,7 +211,7 @@ Based on your knowledge of recent regulatory developments in these series (2024-
                       <span style={{ ...styles.seriesTag, color: seriesColor, borderColor: `${seriesColor}44` }}>
                         {item.series}
                       </span>
-                      <span style={{ ...styles.categoryTag }}>
+                      <span style={styles.categoryTag}>
                         {categoryIcons[item.category]} {item.category}
                       </span>
                       <span style={{ ...styles.impactTag, background: impact.bg, borderColor: impact.border, color: impact.text }}>
@@ -295,7 +230,6 @@ Based on your knowledge of recent regulatory developments in these series (2024-
               })}
             </div>
 
-            {/* Cross-series insight */}
             {digest.cross_series_insight && (
               <div style={styles.insightBox}>
                 <div style={styles.insightLabel}>◈ CROSS-SERIES INSIGHT</div>
@@ -303,16 +237,14 @@ Based on your knowledge of recent regulatory developments in these series (2024-
               </div>
             )}
 
-            {/* Footer */}
             <div style={styles.digestFooter}>
-              <span>PitLane Regs · AI-powered regulatory monitoring · <a href="https://pitlaneregs.beehiiv.com/subscribe" style={{color: "#E8002D", textDecoration: "none"}}>Subscribe to newsletter →</a></span>
+              <span>PitLane Regs · AI-powered regulatory monitoring · <a href="https://pitlaneregs.beehiiv.com/subscribe" style={{ color: "#E8002D", textDecoration: "none" }}>Subscribe →</a></span>
               <span style={{ color: "#333" }}>·</span>
               <span>Sources: FIA · FIM · WRC · Formula E</span>
             </div>
           </div>
         )}
 
-        {/* Empty state */}
         {!digest && !loading && !error && (
           <div style={styles.emptyState}>
             <div style={styles.emptyIcon}>
@@ -331,343 +263,69 @@ Based on your knowledge of recent regulatory developments in these series (2024-
 }
 
 const styles = {
-  root: {
-    minHeight: "100vh",
-    background: "#080808",
-    color: "#e0e0e0",
-    fontFamily: "'IBM Plex Mono', 'Courier New', monospace",
-  },
-  header: {
-    borderBottom: "1px solid #1a1a1a",
-    padding: "0 24px",
-    position: "sticky",
-    top: 0,
-    background: "#080808",
-    zIndex: 100,
-  },
-  headerInner: {
-    maxWidth: 900,
-    margin: "0 auto",
-    height: 64,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  logoBlock: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-  },
+  root: { minHeight: "100vh", background: "#080808", color: "#e0e0e0", fontFamily: "'IBM Plex Mono', 'Courier New', monospace" },
+  header: { borderBottom: "1px solid #1a1a1a", padding: "0 24px", position: "sticky", top: 0, background: "#080808", zIndex: 100 },
+  headerInner: { maxWidth: 900, margin: "0 auto", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" },
+  logoBlock: { display: "flex", alignItems: "center", gap: 12 },
   logoMark: { display: "flex" },
-  logoText: {
-    fontSize: 20,
-    fontWeight: 700,
-    letterSpacing: "0.15em",
-    color: "#fff",
-    fontFamily: "'IBM Plex Mono', monospace",
-  },
+  logoText: { fontSize: 20, fontWeight: 700, letterSpacing: "0.15em", color: "#fff", fontFamily: "'IBM Plex Mono', monospace" },
   logoAccent: { color: "#E8002D" },
   logoSub: { fontSize: 10, color: "#444", letterSpacing: "0.2em", marginTop: 2 },
-  statusPill: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    fontSize: 11,
-    letterSpacing: "0.15em",
-    color: "#555",
-    border: "1px solid #1f1f1f",
-    padding: "6px 12px",
-    borderRadius: 2,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: "50%",
-    background: "#E8002D",
-    display: "block",
-  },
-  main: {
-    maxWidth: 900,
-    margin: "0 auto",
-    padding: "32px 24px 80px",
-  },
-  controlPanel: {
-    border: "1px solid #1a1a1a",
-    padding: 24,
-    marginBottom: 32,
-  },
-  controlHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  sectionLabel: {
-    fontSize: 11,
-    letterSpacing: "0.2em",
-    color: "#E8002D",
-  },
-  controlHint: {
-    fontSize: 11,
-    color: "#333",
-    letterSpacing: "0.1em",
-  },
-  seriesGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(4, 1fr)",
-    gap: 8,
-    marginBottom: 20,
-  },
-  seriesBtn: {
-    border: "1px solid",
-    padding: "12px 8px",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: 6,
-    transition: "all 0.2s",
-    background: "transparent",
-    fontFamily: "'IBM Plex Mono', monospace",
-  },
+  statusPill: { display: "flex", alignItems: "center", gap: 8, fontSize: 11, letterSpacing: "0.15em", color: "#555", border: "1px solid #1f1f1f", padding: "6px 12px", borderRadius: 2 },
+  statusDot: { width: 6, height: 6, borderRadius: "50%", background: "#E8002D", display: "block" },
+  main: { maxWidth: 900, margin: "0 auto", padding: "32px 24px 80px" },
+  controlPanel: { border: "1px solid #1a1a1a", padding: 24, marginBottom: 32 },
+  controlHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
+  sectionLabel: { fontSize: 11, letterSpacing: "0.2em", color: "#E8002D" },
+  controlHint: { fontSize: 11, color: "#333", letterSpacing: "0.1em" },
+  seriesGrid: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 20 },
+  seriesBtn: { border: "1px solid", padding: "12px 8px", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, transition: "all 0.2s", background: "transparent", fontFamily: "'IBM Plex Mono', monospace" },
   seriesIcon: { fontSize: 20 },
   seriesName: { fontSize: 11, letterSpacing: "0.1em", fontWeight: 600 },
   seriesCheck: { fontSize: 8, opacity: 0.7 },
-  runBtn: {
-    width: "100%",
-    padding: "14px 24px",
-    background: "#E8002D",
-    color: "#fff",
-    border: "none",
-    fontFamily: "'IBM Plex Mono', monospace",
-    fontSize: 13,
-    letterSpacing: "0.2em",
-    fontWeight: 700,
-    transition: "all 0.2s",
-  },
-  runBtnInner: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-  },
-  spinner: {
-    display: "inline-block",
-    animation: "spin 1s linear infinite",
-  },
-  loadingSection: {
-    border: "1px solid #1a1a1a",
-    padding: 32,
-    marginBottom: 32,
-  },
-  loadingGrid: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 12,
-  },
-  loadingStep: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    fontSize: 12,
-    color: "#444",
-    letterSpacing: "0.1em",
-    animation: "fadeInUp 0.4s ease forwards",
-    opacity: 0,
-  },
+  runBtn: { width: "100%", padding: "14px 24px", background: "#E8002D", color: "#fff", border: "none", fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, letterSpacing: "0.2em", fontWeight: 700, transition: "all 0.2s" },
+  runBtnInner: { display: "flex", alignItems: "center", justifyContent: "center", gap: 12 },
+  spinner: { display: "inline-block", animation: "spin 1s linear infinite" },
+  loadingSection: { border: "1px solid #1a1a1a", padding: 32, marginBottom: 32 },
+  loadingGrid: { display: "flex", flexDirection: "column", gap: 12 },
+  loadingStep: { display: "flex", alignItems: "center", gap: 12, fontSize: 12, color: "#444", letterSpacing: "0.1em", animation: "fadeInUp 0.4s ease forwards", opacity: 0 },
   loadingDot: { color: "#E8002D", fontSize: 8 },
-  errorBox: {
-    border: "1px solid #FF444433",
-    background: "#FF444408",
-    padding: 16,
-    fontSize: 12,
-    color: "#FF8888",
-    marginBottom: 24,
-  },
-  digestContainer: {
-    animation: "fadeInUp 0.5s ease forwards",
-  },
-  digestHeader: {
-    borderLeft: "3px solid #E8002D",
-    paddingLeft: 20,
-    marginBottom: 32,
-  },
-  digestMeta: {
-    display: "flex",
-    gap: 16,
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  digestLabel: {
-    fontSize: 10,
-    letterSpacing: "0.25em",
-    color: "#E8002D",
-    fontWeight: 700,
-  },
-  digestDate: {
-    fontSize: 10,
-    color: "#444",
-    letterSpacing: "0.1em",
-  },
-  digestTitle: {
-    fontSize: 28,
-    fontWeight: 700,
-    color: "#fff",
-    margin: "0 0 12px",
-    lineHeight: 1.2,
-    letterSpacing: "-0.02em",
-    fontFamily: "'IBM Plex Mono', monospace",
-  },
-  digestSummary: {
-    fontSize: 13,
-    color: "#888",
-    lineHeight: 1.7,
-    margin: 0,
-    maxWidth: 640,
-  },
-  itemsGrid: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 2,
-    marginBottom: 24,
-  },
-  regItem: {
-    borderLeft: "3px solid",
-    padding: "16px 20px",
-    transition: "background 0.2s",
-    animation: "fadeInUp 0.4s ease forwards",
-    opacity: 0,
-  },
-  itemTop: {
-    display: "flex",
-    gap: 8,
-    alignItems: "center",
-    marginBottom: 10,
-    flexWrap: "wrap",
-  },
-  seriesTag: {
-    fontSize: 10,
-    fontWeight: 700,
-    letterSpacing: "0.15em",
-    border: "1px solid",
-    padding: "2px 8px",
-  },
-  categoryTag: {
-    fontSize: 10,
-    color: "#555",
-    letterSpacing: "0.1em",
-  },
-  impactTag: {
-    fontSize: 10,
-    fontWeight: 700,
-    letterSpacing: "0.15em",
-    border: "1px solid",
-    padding: "2px 8px",
-    marginLeft: "auto",
-  },
-  itemHeadline: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: "#ddd",
-    margin: "0 0 8px",
-    lineHeight: 1.4,
-    letterSpacing: "-0.01em",
-  },
-  itemDetail: {
-    fontSize: 12,
-    color: "#777",
-    lineHeight: 1.7,
-    margin: "12px 0 8px",
-    borderTop: "1px solid #1a1a1a",
-    paddingTop: 12,
-  },
-  itemExpand: {
-    fontSize: 10,
-    color: "#333",
-    letterSpacing: "0.1em",
-    marginTop: 4,
-  },
-  insightBox: {
-    border: "1px solid #00BFFF22",
-    background: "#00BFFF08",
-    padding: 20,
-    marginBottom: 24,
-  },
-  insightLabel: {
-    fontSize: 10,
-    letterSpacing: "0.2em",
-    color: "#00BFFF",
-    marginBottom: 10,
-    fontWeight: 700,
-  },
-  insightText: {
-    fontSize: 12,
-    color: "#888",
-    lineHeight: 1.7,
-    margin: 0,
-  },
-  digestFooter: {
-    display: "flex",
-    gap: 12,
-    fontSize: 10,
-    color: "#333",
-    letterSpacing: "0.1em",
-    paddingTop: 16,
-    borderTop: "1px solid #111",
-  },
-  emptyState: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "80px 24px",
-    gap: 24,
-  },
+  errorBox: { border: "1px solid #FF444433", background: "#FF444408", padding: 16, fontSize: 12, color: "#FF8888", marginBottom: 24 },
+  digestContainer: { animation: "fadeInUp 0.5s ease forwards" },
+  digestHeader: { borderLeft: "3px solid #E8002D", paddingLeft: 20, marginBottom: 32 },
+  digestMeta: { display: "flex", gap: 16, alignItems: "center", marginBottom: 12 },
+  digestLabel: { fontSize: 10, letterSpacing: "0.25em", color: "#E8002D", fontWeight: 700 },
+  digestDate: { fontSize: 10, color: "#444", letterSpacing: "0.1em" },
+  digestTitle: { fontSize: 28, fontWeight: 700, color: "#fff", margin: "0 0 12px", lineHeight: 1.2, letterSpacing: "-0.02em", fontFamily: "'IBM Plex Mono', monospace" },
+  digestSummary: { fontSize: 13, color: "#888", lineHeight: 1.7, margin: 0, maxWidth: 640 },
+  itemsGrid: { display: "flex", flexDirection: "column", gap: 2, marginBottom: 24 },
+  regItem: { borderLeft: "3px solid", padding: "16px 20px", transition: "background 0.2s", animation: "fadeInUp 0.4s ease forwards", opacity: 0 },
+  itemTop: { display: "flex", gap: 8, alignItems: "center", marginBottom: 10, flexWrap: "wrap" },
+  seriesTag: { fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", border: "1px solid", padding: "2px 8px" },
+  categoryTag: { fontSize: 10, color: "#555", letterSpacing: "0.1em" },
+  impactTag: { fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", border: "1px solid", padding: "2px 8px", marginLeft: "auto" },
+  itemHeadline: { fontSize: 14, fontWeight: 600, color: "#ddd", margin: "0 0 8px", lineHeight: 1.4, letterSpacing: "-0.01em" },
+  itemDetail: { fontSize: 12, color: "#777", lineHeight: 1.7, margin: "12px 0 8px", borderTop: "1px solid #1a1a1a", paddingTop: 12 },
+  itemExpand: { fontSize: 10, color: "#333", letterSpacing: "0.1em", marginTop: 4 },
+  insightBox: { border: "1px solid #00BFFF22", background: "#00BFFF08", padding: 20, marginBottom: 24 },
+  insightLabel: { fontSize: 10, letterSpacing: "0.2em", color: "#00BFFF", marginBottom: 10, fontWeight: 700 },
+  insightText: { fontSize: 12, color: "#888", lineHeight: 1.7, margin: 0 },
+  digestFooter: { display: "flex", gap: 12, fontSize: 10, color: "#333", letterSpacing: "0.1em", paddingTop: 16, borderTop: "1px solid #111" },
+  emptyState: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 24px", gap: 24 },
   emptyIcon: { opacity: 0.4 },
-  emptyText: {
-    fontSize: 12,
-    color: "#333",
-    textAlign: "center",
-    maxWidth: 360,
-    lineHeight: 1.7,
-    letterSpacing: "0.05em",
-  },
+  emptyText: { fontSize: 12, color: "#333", textAlign: "center", maxWidth: 360, lineHeight: 1.7, letterSpacing: "0.05em" },
 };
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&display=swap');
-
   * { box-sizing: border-box; }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.2; }
-  }
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-  @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .series-btn:hover {
-    transform: translateY(-1px);
-  }
-  .run-btn:hover:not(:disabled) {
-    background: #FF1A3C !important;
-    transform: translateY(-1px);
-  }
-  .loading-step {
-    animation: fadeInUp 0.4s ease forwards !important;
-  }
-  .digest-reveal {
-    animation: fadeInUp 0.5s ease forwards;
-  }
-  .reg-item:hover {
-    background: #111 !important;
-  }
-  .item-detail {
-    animation: fadeInUp 0.25s ease forwards;
-  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .series-btn:hover { transform: translateY(-1px); }
+  .run-btn:hover:not(:disabled) { background: #FF1A3C !important; transform: translateY(-1px); }
+  .loading-step { animation: fadeInUp 0.4s ease forwards !important; }
+  .digest-reveal { animation: fadeInUp 0.5s ease forwards; }
+  .reg-item:hover { background: #111 !important; }
+  .item-detail { animation: fadeInUp 0.25s ease forwards; }
 `;
