@@ -209,7 +209,7 @@ Based on your knowledge of recent regulatory developments in these series (2024-
               padding: "10px",
               marginTop: 8,
               fontSize: 11,
-              color: "#555",
+              color: "#E8002D",
               letterSpacing: "0.1em",
               textDecoration: "none",
             }}
