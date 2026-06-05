@@ -200,6 +200,21 @@ Based on your knowledge of recent regulatory developments in these series (2024-
               </span>
             )}
           </button>
+          href="https://pitlaneregs.beehiiv.com/subscribe"
+           target="_blank"
+            style={{
+              display: "block",
+               textAlign: "center",
+                padding: "10px",
+                 marginTop: 8,
+                  fontSize: 11,
+                   color: "#555",
+                    letterSpacing: "0.1em",
+                    textDecoration: "none",
+                     }}
+                      >
+                       ✉ Subscribe to weekly newsletter →
+                       </a>
         </section>
 
         {/* Loading State */}
