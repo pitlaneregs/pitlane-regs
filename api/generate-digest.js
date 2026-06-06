@@ -52,8 +52,8 @@ export default async function handler(req, res) {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 2000,
+       model: "claude-sonnet-4-5",
+       max_tokens: 2000,
         system: SYSTEM_PROMPT_FULL,
         messages: [{ role: "user", content: `Write a DETAILED motorsport regulations newsletter for F1, MotoGP, WRC, Formula E, NASCAR, IndyCar for ${today}. Include full technical analysis and source URLs. Return ONLY valid JSON.` }],
       }),
