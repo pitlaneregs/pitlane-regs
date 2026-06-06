@@ -4,8 +4,8 @@ import { Resend } from "resend";
 const SYSTEM_PROMPT_SHORT = `Return ONLY this JSON, no other text:
 {"digest_title":"string","digest_date":"string","summary":"string","items":[{"series":"string","headline":"string","detail":"string","impact":"LOW|MEDIUM|HIGH","category":"Technical|Sporting|Financial|Safety"}],"cross_series_insight":"string"}`;
 
-const SYSTEM_PROMPT_FULL = `You are a motorsport regulations expert. Return ONLY this JSON, no other text:
-{"digest_title":"string","digest_date":"string","summary":"string","items":[{"series":"string","headline":"string","brief":"string","full_analysis":"string","technical_implications":"string","impact":"LOW|MEDIUM|HIGH","category":"Technical|Sporting|Financial|Safety","source_url":"string"}],"cross_series_insight":"string","editor_note":"string"}`;
+const SYSTEM_PROMPT_FULL = `You are a motorsport regulations expert writing a detailed newsletter. Return ONLY this JSON, no other text:
+{"digest_title":"string","digest_date":"string","summary":"string","items":[{"series":"string","headline":"string","full_analysis":"string","impact":"LOW|MEDIUM|HIGH","category":"Technical|Sporting|Financial|Safety","source_url":"string"}],"cross_series_insight":"string"}`;
 
 export default async function handler(req, res) {
   const secret = req.headers["x-cron-secret"] || req.body?.password;
@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   const today = new Date().toLocaleDateString("en-GB");
 
   try {
-    // Generate short version for website
+    // Step 1 — Generate short version for website
     const shortRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -36,14 +36,14 @@ export default async function handler(req, res) {
     const shortRaw = shortData.content?.find(b => b.type === "text")?.text || "";
     const shortDigest = JSON.parse(shortRaw.replace(/```json|```/g, "").trim());
 
-    // Save short version to Blob
+    // Step 2 — Save short version to Blob (public website)
     await put("digest/latest.json", JSON.stringify(shortDigest), {
       access: "public",
       contentType: "application/json",
       addRandomSuffix: false,
     });
 
-    // Generate full version for newsletter
+    // Step 3 — Generate full version for newsletter
     const fullRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -52,43 +52,63 @@ export default async function handler(req, res) {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-       model: "claude-sonnet-4-5",
-       max_tokens: 2000,
+        model: "claude-sonnet-4-5",
+        max_tokens: 2000,
         system: SYSTEM_PROMPT_FULL,
-        messages: [{ role: "user", content: `Write a DETAILED motorsport regulations newsletter for F1, MotoGP, WRC, Formula E, NASCAR, IndyCar for ${today}. Include full technical analysis and source URLs. Return ONLY valid JSON.` }],
+        messages: [{ role: "user", content: `Write a DETAILED motorsport regulations newsletter for F1, MotoGP, WRC, Formula E for ${today}. Include full technical analysis. Return ONLY valid JSON.` }],
       }),
     });
 
     const fullData = await fullRes.json();
     const fullRaw = fullData.content?.find(b => b.type === "text")?.text || "";
-    const fullDigest = JSON.parse(fullRaw.replace(/```json|```/g, "").trim());
 
-    // Format newsletter email
-    const emailHtml = `
-<h1 style="font-family:Arial Black;color:#E8002D">${fullDigest.digest_title}</h1>
-<p style="color:#666;font-family:monospace">${fullDigest.digest_date}</p>
-<p style="font-family:Arial;font-size:14px;line-height:1.7">${fullDigest.summary}</p>
-<hr style="border-color:#222;margin:24px 0"/>
-${fullDigest.items?.map(item => `
-<div style="margin-bottom:32px;border-left:3px solid #E8002D;padding-left:16px">
-  <div style="font-family:monospace;font-size:11px;color:#E8002D;font-weight:bold;margin-bottom:8px">
-    ${item.series} · ${item.category} · ${item.impact}
-  </div>
-  <h2 style="font-family:Arial Black;font-size:18px;margin:0 0 8px">${item.headline}</h2>
-  <p style="font-size:14px;line-height:1.7;color:#444">${item.full_analysis}</p>
-  <p style="font-size:13px;line-height:1.6;color:#666"><strong>Technical implications:</strong> ${item.technical_implications}</p>
-  ${item.source_url ? `<a href="${item.source_url}" style="font-size:11px;color:#E8002D">Official source ↗</a>` : ""}
-</div>`).join("")}
-<hr style="border-color:#222;margin:24px 0"/>
-<div style="background:#f5f5f5;padding:16px;border-left:3px solid #00BFFF">
-  <strong>Cross-Series Insight:</strong><br/>
-  ${fullDigest.cross_series_insight}
-</div>
-<br/>
-<p style="font-size:12px;color:#999;font-family:monospace">PitLane Regs · pitlaneregs.com</p>
-    `;
+    // Parse full digest safely
+    let fullDigest;
+    try {
+      fullDigest = JSON.parse(fullRaw.replace(/```json|```/g, "").trim());
+    } catch(e) {
+      fullDigest = {
+        digest_title: shortDigest.digest_title,
+        digest_date: shortDigest.digest_date,
+        raw_content: fullRaw,
+      };
+    }
 
-    // Send email via Resend
+    // Step 4 — Format email HTML
+    const emailHtml = fullDigest.raw_content
+      ? `
+        <h1 style="font-family:Arial Black;color:#E8002D">${fullDigest.digest_title}</h1>
+        <p style="color:#666;font-family:monospace">${fullDigest.digest_date}</p>
+        <hr style="border-color:#eee;margin:24px 0"/>
+        <pre style="font-family:Arial;font-size:13px;line-height:1.8;white-space:pre-wrap">${fullDigest.raw_content}</pre>
+        <hr style="border-color:#eee;margin:24px 0"/>
+        <p style="font-size:11px;color:#999;font-family:monospace">PitLane Regs · pitlaneregs.com</p>
+      `
+      : `
+        <h1 style="font-family:Arial Black;color:#E8002D">${fullDigest.digest_title}</h1>
+        <p style="color:#666;font-family:monospace">${fullDigest.digest_date}</p>
+        <p style="font-family:Arial;font-size:14px;line-height:1.7;color:#444">${fullDigest.summary}</p>
+        <hr style="border-color:#eee;margin:24px 0"/>
+        ${(fullDigest.items || []).map(item => `
+          <div style="margin-bottom:32px;border-left:3px solid #E8002D;padding-left:16px">
+            <div style="font-family:monospace;font-size:11px;color:#E8002D;font-weight:bold;margin-bottom:8px">
+              ${item.series} · ${item.category} · ${item.impact}
+            </div>
+            <h2 style="font-family:Arial Black;font-size:18px;margin:0 0 8px;color:#111">${item.headline}</h2>
+            <p style="font-size:14px;line-height:1.7;color:#444">${item.full_analysis}</p>
+            ${item.source_url ? `<a href="${item.source_url}" style="font-size:11px;color:#E8002D;text-decoration:none">Official source ↗</a>` : ""}
+          </div>
+        `).join("")}
+        <hr style="border-color:#eee;margin:24px 0"/>
+        <div style="background:#f9f9f9;padding:16px;border-left:3px solid #00BFFF">
+          <strong>Cross-Series Insight:</strong><br/>
+          <p style="font-size:13px;color:#555;line-height:1.7">${fullDigest.cross_series_insight || ""}</p>
+        </div>
+        <br/>
+        <p style="font-size:11px;color:#999;font-family:monospace">PitLane Regs · pitlaneregs.com</p>
+      `;
+
+    // Step 5 — Send email via Resend
     const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
       from: "PitLane Regs <onboarding@resend.dev>",
@@ -97,10 +117,10 @@ ${fullDigest.items?.map(item => `
       html: emailHtml,
     });
 
-    return res.status(200).json({ 
-      success: true, 
+    return res.status(200).json({
+      success: true,
       message: "Digest generated, saved and email sent",
-      items: shortDigest.items?.length 
+      items: shortDigest.items?.length,
     });
 
   } catch (e) {
