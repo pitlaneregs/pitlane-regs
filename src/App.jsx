@@ -1,316 +1,308 @@
 import { useState, useEffect } from "react";
 
-const SOURCES = [
-  { id: "fia-f1", series: "F1", name: "FIA Formula 1 Regulations", url: "https://www.fia.com/regulation/category/110", color: "#E8002D", icon: "⬡" },
-  { id: "motogp", series: "MotoGP", name: "MotoGP Rules & Regulations", url: "https://www.motogp.com/en/news/rules-and-regulations", color: "#E63329", icon: "◈" },
-  { id: "wrc", series: "WRC", name: "FIA World Rally Championship", url: "https://www.fia.com/regulation/category/185", color: "#00A650", icon: "◆" },
-  { id: "formula-e", series: "Formula E", name: "FIA Formula E Regulations", url: "https://www.fia.com/regulation/category/1491", color: "#00BFFF", icon: "◉" },
-];
-
-const SYSTEM_PROMPT = `Return ONLY this JSON, no other text:
-{"digest_title":"string","digest_date":"string","summary":"string","items":[{"series":"string","headline":"string","detail":"string","impact":"LOW","category":"Technical"}],"cross_series_insight":"string"}`;
-
-const seriesColors = { F1: "#E8002D", MotoGP: "#FF6B35", WRC: "#00A650", "Formula E": "#00BFFF" };
-const impactColors = {
-  HIGH: { bg: "#FF2D2D22", border: "#FF2D2D", text: "#FF6B6B" },
-  MEDIUM: { bg: "#FF890022", border: "#FF8900", text: "#FFB347" },
-  LOW: { bg: "#00FF8822", border: "#00FF88", text: "#66FFB2" },
+const SOURCE_LINKS = {
+  "F1": "https://www.fia.com/regulation/category/110",
+  "Formula 1": "https://www.fia.com/regulation/category/110",
+  "MotoGP": "https://www.motogp.com/en/news/rules-and-regulations",
+  "WRC": "https://www.fia.com/regulation/category/185",
+  "Formula E": "https://www.fia.com/regulation/category/1491",
 };
-const categoryIcons = { Technical: "⚙", Sporting: "🏁", Financial: "💰", Safety: "🛡" };
 
-export default function PitLaneRegs() {
+const SERIES_COLORS = {
+  F1: "#E8002D",
+  "Formula 1": "#E8002D",
+  MotoGP: "#FF6B35",
+  WRC: "#00A650",
+  "Formula E": "#00BFFF",
+};
+
+const IMPACT_COLORS = {
+  HIGH: { bg: "#FF2D2D18", border: "#E8002D", text: "#FF6B6B" },
+  MEDIUM: { bg: "#FF890018", border: "#FF8900", text: "#FFB347" },
+  LOW: { bg: "#00FF8818", border: "#00A650", text: "#66FFB2" },
+};
+
+const CATEGORY_ICONS = {
+  Technical: "⚙",
+  Sporting: "🏁",
+  Financial: "💰",
+  Safety: "🛡",
+};
+
+function PLRLogo() {
+  return (
+    <svg viewBox="0 0 200 80" width="160" height="64" xmlns="http://www.w3.org/2000/svg">
+      <rect width="200" height="80" fill="transparent"/>
+      <rect x="0" y="0" width="200" height="2" fill="#E8002D"/>
+      <text x="16" y="54" fontFamily="'Arial Black', 'Helvetica Neue', Arial, sans-serif" fontWeight="900" fontSize="48" letterSpacing="-1" fill="#FFFFFF">PL</text>
+      <text x="96" y="54" fontFamily="'Arial Black', 'Helvetica Neue', Arial, sans-serif" fontWeight="900" fontSize="48" letterSpacing="-1" fill="#E8002D">R</text>
+      <rect x="16" y="60" width="152" height="1" fill="#333"/>
+      <text x="16" y="75" fontFamily="'Arial', Helvetica, sans-serif" fontWeight="700" fontSize="10" letterSpacing="4" fill="#AAAAAA">PITLANE REGS</text>
+    </svg>
+  );
+}
+
+export default function App() {
   const [digest, setDigest] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedSeries, setSelectedSeries] = useState(["F1", "MotoGP", "WRC", "Formula E"]);
   const [activeItem, setActiveItem] = useState(null);
 
-  const toggleSeries = (series) => {
-    setSelectedSeries((prev) =>
-      prev.includes(series) ? prev.filter((s) => s !== series) : [...prev, series]
-    );
-  };
+  useEffect(() => {
+    loadDigest();
+  }, []);
 
-    const runAgent = async () => {
+  const loadDigest = async () => {
     setLoading(true);
     setError(null);
-    setDigest(null);
-    setActiveItem(null);
-
     try {
-      const response = await fetch("/api/get-digest");
-      const data = await response.json();
+      const res = await fetch("/api/get-digest");
+      const data = await res.json();
       if (data.error) throw new Error(data.error);
       setDigest(data);
-    } catch (err) {
-      setError("Error loading digest: " + err.message);
+    } catch (e) {
+      setError(e.message);
     } finally {
       setLoading(false);
     }
   };
 
+  const getSeriesColor = (series) => SERIES_COLORS[series] || "#888";
+  const getSourceLink = (series) => SOURCE_LINKS[series] || "https://www.fia.com";
+
   return (
-    <div style={styles.root}>
+    <div style={s.root}>
       <style>{css}</style>
 
-      <header style={styles.header}>
-        <div style={styles.headerInner}>
-          <div style={styles.logoBlock}>
-            <div style={styles.logoMark}>
-              <svg width="32" height="32" viewBox="0 0 32 32">
-                <polygon points="16,2 30,9 30,23 16,30 2,23 2,9" fill="none" stroke="#E8002D" strokeWidth="1.5" />
-                <polygon points="16,7 25,11.5 25,20.5 16,25 7,20.5 7,11.5" fill="#E8002D" opacity="0.15" />
-                <circle cx="16" cy="16" r="3" fill="#E8002D" />
-              </svg>
-            </div>
-            <div>
-              <div style={styles.logoText}>PITLANE<span style={styles.logoAccent}>REGS</span></div>
-              <div style={styles.logoSub}>Motorsport Regulatory Intelligence</div>
-            </div>
-          </div>
-          <div style={styles.statusPill}>
-            <span style={{ ...styles.statusDot, animation: loading ? "pulse 1s infinite" : "none" }} />
-            {loading ? "AGENT RUNNING" : digest ? "DIGEST READY" : "STANDBY"}
-          </div>
+      {/* Header */}
+      <header style={s.header}>
+        <div style={s.headerInner}>
+          <PLRLogo />
+          <nav style={s.nav}>
+            <a href="https://pitlaneregs.beehiiv.com/subscribe" target="_blank" rel="noopener noreferrer" style={s.navBtn}>
+              ✉ Subscribe
+            </a>
+          </nav>
         </div>
       </header>
 
-      <main style={styles.main}>
-        <section style={styles.controlPanel}>
-          <div style={styles.controlHeader}>
-            <span style={styles.sectionLabel}>// SERIES MONITOR</span>
-            <span style={styles.controlHint}>Select series to include in digest</span>
-          </div>
-          <div style={styles.seriesGrid}>
-            {SOURCES.map((src) => (
-              <button
-                key={src.id}
-                onClick={() => toggleSeries(src.series)}
-                style={{
-                  ...styles.seriesBtn,
-                  borderColor: selectedSeries.includes(src.series) ? src.color : "#2a2a2a",
-                  background: selectedSeries.includes(src.series) ? `${src.color}18` : "transparent",
-                  color: selectedSeries.includes(src.series) ? src.color : "#555",
-                }}
-                className="series-btn"
-              >
-                <span style={styles.seriesIcon}>{src.icon}</span>
-                <span style={styles.seriesName}>{src.series}</span>
-                <span style={styles.seriesCheck}>{selectedSeries.includes(src.series) ? "●" : "○"}</span>
-              </button>
-            ))}
-          </div>
+      {/* Hero */}
+      <div style={s.hero}>
+        <div style={s.heroInner}>
+          <div style={s.heroLabel}>MOTORSPORT REGULATORY INTELLIGENCE</div>
+          <h1 style={s.heroTitle}>The definitive source for<br /><span style={s.heroAccent}>motorsport regulation updates</span></h1>
+          <p style={s.heroSub}>Weekly analysis of F1, MotoGP, WRC and Formula E regulatory changes — explained in plain English.</p>
+        </div>
+      </div>
 
-          <button
-            onClick={runAgent}
-            disabled={loading || selectedSeries.length === 0}
-            style={{
-              ...styles.runBtn,
-              opacity: loading || selectedSeries.length === 0 ? 0.5 : 1,
-              cursor: loading || selectedSeries.length === 0 ? "not-allowed" : "pointer",
-            }}
-            className="run-btn"
-          >
-            {loading ? (
-              <span style={styles.runBtnInner}>
-                <span style={styles.spinner}>◌</span>
-                AGENT PROCESSING...
-              </span>
-            ) : (
-              <span style={styles.runBtnInner}>
-                <span>▶</span>
-                RUN WEEKLY DIGEST
-              </span>
-            )}
-          </button>
-
-          <a
-            href="https://pitlaneregs.beehiiv.com/subscribe"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: "block",
-              textAlign: "center",
-              padding: "12px",
-              marginTop: 12,
-              fontSize: 12,
-              color: "#E8002D",
-              letterSpacing: "0.1em",
-              textDecoration: "none",
-              border: "1px solid #E8002D22",
-            }}
-          >
-            ✉ Subscribe to weekly newsletter →
-          </a>
-        </section>
+      {/* Main content */}
+      <main style={s.main}>
 
         {loading && (
-          <section style={styles.loadingSection}>
-            <div style={styles.loadingGrid}>
-              {["Fetching FIA sources", "Parsing regulation PDFs", "Diffing versions", "Generating analysis", "Building digest"].map((step, i) => (
-                <div key={step} style={{ ...styles.loadingStep, animationDelay: `${i * 0.3}s` }} className="loading-step">
-                  <span style={styles.loadingDot}>◆</span>
-                  <span>{step}</span>
-                </div>
-              ))}
-            </div>
-          </section>
+          <div style={s.loadingState}>
+            <div style={s.loadingDot} className="pulse" />
+            <span style={s.loadingText}>Loading latest digest...</span>
+          </div>
         )}
 
         {error && (
-          <div style={styles.errorBox}>
-            <span style={{ color: "#FF4444" }}>⚠ </span>{error}
+          <div style={s.errorBox}>
+            <span style={{ color: "#FF4444" }}>⚠ </span>
+            No digest available yet. Check back soon.
           </div>
         )}
 
         {digest && !loading && (
-          <div style={styles.digestContainer} className="digest-reveal">
-            <div style={styles.digestHeader}>
-              <div style={styles.digestMeta}>
-                <span style={styles.digestLabel}>WEEKLY DIGEST</span>
-                <span style={styles.digestDate}>{digest.digest_date}</span>
-              </div>
-              <h1 style={styles.digestTitle}>{digest.digest_title}</h1>
-              <p style={styles.digestSummary}>{digest.summary}</p>
+          <>
+            {/* Digest meta */}
+            <div style={s.digestMeta}>
+              <span style={s.digestWeek}>WEEKLY DIGEST</span>
+              <span style={s.digestDate}>{digest.digest_date}</span>
+              <span style={s.digestDivider}>·</span>
+              <span style={s.digestCount}>{digest.items?.length || 0} updates</span>
             </div>
 
-            <div style={styles.itemsGrid}>
-              {digest.items?.map((item, i) => {
-                const seriesColor = seriesColors[item.series] || "#888";
-                const impact = impactColors[item.impact] || impactColors.LOW;
-                const isActive = activeItem === i;
+            {/* Digest title */}
+            <h2 style={s.digestTitle}>{digest.digest_title}</h2>
+            <p style={s.digestSummary}>{digest.summary}</p>
+
+            {/* Series filter pills */}
+            <div style={s.seriesPills}>
+              {["F1", "MotoGP", "WRC", "Formula E"].map(series => {
+                const color = getSeriesColor(series);
+                const hasItems = digest.items?.some(i => i.series === series || i.series === "Formula 1");
                 return (
-                  <div
-                    key={i}
-                    onClick={() => setActiveItem(isActive ? null : i)}
+                  <a
+                    key={series}
+                    href={getSourceLink(series)}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     style={{
-                      ...styles.regItem,
-                      borderLeftColor: seriesColor,
-                      background: isActive ? "#141414" : "#0d0d0d",
-                      cursor: "pointer",
-                      animationDelay: `${i * 0.1}s`,
+                      ...s.seriesPill,
+                      borderColor: hasItems ? color : "#222",
+                      color: hasItems ? color : "#333",
+                      opacity: hasItems ? 1 : 0.4,
                     }}
-                    className="reg-item"
                   >
-                    <div style={styles.itemTop}>
-                      <span style={{ ...styles.seriesTag, color: seriesColor, borderColor: `${seriesColor}44` }}>
-                        {item.series}
-                      </span>
-                      <span style={styles.categoryTag}>
-                        {categoryIcons[item.category]} {item.category}
-                      </span>
-                      <span style={{ ...styles.impactTag, background: impact.bg, borderColor: impact.border, color: impact.text }}>
-                        {item.impact}
-                      </span>
-                    </div>
-                    <h3 style={styles.itemHeadline}>{item.headline}</h3>
-                    {isActive && (
-                      <p style={styles.itemDetail} className="item-detail">{item.detail}</p>
-                    )}
-                    <div style={styles.itemExpand}>
-                      {isActive ? "▲ collapse" : "▼ read more"}
-                    </div>
-                  </div>
+                    {series} ↗
+                  </a>
                 );
               })}
             </div>
 
+            {/* News grid */}
+            <div style={s.newsGrid}>
+              {digest.items?.map((item, i) => {
+                const color = getSeriesColor(item.series);
+                const impact = IMPACT_COLORS[item.impact] || IMPACT_COLORS.LOW;
+                const isActive = activeItem === i;
+                const sourceUrl = getSourceLink(item.series);
+
+                return (
+                  <article
+                    key={i}
+                    style={{
+                      ...s.newsCard,
+                      borderTopColor: color,
+                      animationDelay: `${i * 0.08}s`,
+                    }}
+                    className="news-card"
+                  >
+                    {/* Card header */}
+                    <div style={s.cardHeader}>
+                      <span style={{ ...s.seriesTag, color, borderColor: `${color}33` }}>
+                        {item.series}
+                      </span>
+                      <span style={s.categoryTag}>
+                        {CATEGORY_ICONS[item.category]} {item.category}
+                      </span>
+                      <span style={{ ...s.impactTag, background: impact.bg, borderColor: impact.border, color: impact.text }}>
+                        {item.impact}
+                      </span>
+                    </div>
+
+                    {/* Headline */}
+                    <h3 style={s.cardHeadline}>{item.headline}</h3>
+
+                    {/* Detail - expandable */}
+                    {isActive && (
+                      <p style={s.cardDetail} className="card-detail">{item.detail}</p>
+                    )}
+
+                    {/* Card footer */}
+                    <div style={s.cardFooter}>
+                      <button
+                        onClick={() => setActiveItem(isActive ? null : i)}
+                        style={s.expandBtn}
+                      >
+                        {isActive ? "▲ Less" : "▼ Read more"}
+                      </button>
+                      <a
+                        href={sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ ...s.sourceLink, color }}
+                      >
+                        Official source ↗
+                      </a>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            {/* Cross-series insight */}
             {digest.cross_series_insight && (
-              <div style={styles.insightBox}>
-                <div style={styles.insightLabel}>◈ CROSS-SERIES INSIGHT</div>
-                <p style={styles.insightText}>{digest.cross_series_insight}</p>
+              <div style={s.insightBox}>
+                <div style={s.insightHeader}>
+                  <span style={s.insightIcon}>◈</span>
+                  <span style={s.insightLabel}>CROSS-SERIES INSIGHT</span>
+                </div>
+                <p style={s.insightText}>{digest.cross_series_insight}</p>
               </div>
             )}
-
-            <div style={styles.digestFooter}>
-              <span>PitLane Regs · AI-powered regulatory monitoring · <a href="https://pitlaneregs.beehiiv.com/subscribe" style={{ color: "#E8002D", textDecoration: "none" }}>Subscribe →</a></span>
-              <span style={{ color: "#333" }}>·</span>
-              <span>Sources: FIA · FIM · WRC · Formula E</span>
-            </div>
-          </div>
-        )}
-
-        {!digest && !loading && !error && (
-          <div style={styles.emptyState}>
-            <div style={styles.emptyIcon}>
-              <svg width="64" height="64" viewBox="0 0 64 64" opacity="0.3">
-                <polygon points="32,4 60,18 60,46 32,60 4,46 4,18" fill="none" stroke="#E8002D" strokeWidth="1" />
-                <polygon points="32,14 50,23 50,41 32,50 14,41 14,23" fill="none" stroke="#E8002D" strokeWidth="0.5" />
-                <circle cx="32" cy="32" r="6" fill="#E8002D" opacity="0.5" />
-              </svg>
-            </div>
-            <p style={styles.emptyText}>Select series and run the agent to generate your weekly regulation digest</p>
-          </div>
+          </>
         )}
       </main>
+
+      {/* Footer */}
+      <footer style={s.footer}>
+        <div style={s.footerInner}>
+          <PLRLogo />
+          <div style={s.footerLinks}>
+            <a href="https://pitlaneregs.beehiiv.com/subscribe" target="_blank" rel="noopener noreferrer" style={s.footerLink}>Subscribe to newsletter</a>
+            <span style={s.footerDot}>·</span>
+            <a href="https://www.fia.com" target="_blank" rel="noopener noreferrer" style={s.footerLink}>FIA</a>
+            <span style={s.footerDot}>·</span>
+            <a href="https://www.fim-moto.com" target="_blank" rel="noopener noreferrer" style={s.footerLink}>FIM</a>
+            <span style={s.footerDot}>·</span>
+            <a href="https://www.wrc.com" target="_blank" rel="noopener noreferrer" style={s.footerLink}>WRC</a>
+          </div>
+          <p style={s.footerCopy}>© 2026 PitLane Regs · Motorsport Regulatory Intelligence</p>
+        </div>
+      </footer>
     </div>
   );
 }
 
-const styles = {
+const s = {
   root: { minHeight: "100vh", background: "#080808", color: "#e0e0e0", fontFamily: "'IBM Plex Mono', 'Courier New', monospace" },
-  header: { borderBottom: "1px solid #1a1a1a", padding: "0 24px", position: "sticky", top: 0, background: "#080808", zIndex: 100 },
-  headerInner: { maxWidth: 900, margin: "0 auto", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" },
-  logoBlock: { display: "flex", alignItems: "center", gap: 12 },
-  logoMark: { display: "flex" },
-  logoText: { fontSize: 20, fontWeight: 700, letterSpacing: "0.15em", color: "#fff", fontFamily: "'IBM Plex Mono', monospace" },
-  logoAccent: { color: "#E8002D" },
-  logoSub: { fontSize: 10, color: "#444", letterSpacing: "0.2em", marginTop: 2 },
-  statusPill: { display: "flex", alignItems: "center", gap: 8, fontSize: 11, letterSpacing: "0.15em", color: "#555", border: "1px solid #1f1f1f", padding: "6px 12px", borderRadius: 2 },
-  statusDot: { width: 6, height: 6, borderRadius: "50%", background: "#E8002D", display: "block" },
-  main: { maxWidth: 900, margin: "0 auto", padding: "32px 24px 80px" },
-  controlPanel: { border: "1px solid #1a1a1a", padding: 24, marginBottom: 32 },
-  controlHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
-  sectionLabel: { fontSize: 11, letterSpacing: "0.2em", color: "#E8002D" },
-  controlHint: { fontSize: 11, color: "#333", letterSpacing: "0.1em" },
-  seriesGrid: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 20 },
-  seriesBtn: { border: "1px solid", padding: "12px 8px", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, transition: "all 0.2s", background: "transparent", fontFamily: "'IBM Plex Mono', monospace" },
-  seriesIcon: { fontSize: 20 },
-  seriesName: { fontSize: 11, letterSpacing: "0.1em", fontWeight: 600 },
-  seriesCheck: { fontSize: 8, opacity: 0.7 },
-  runBtn: { width: "100%", padding: "14px 24px", background: "#E8002D", color: "#fff", border: "none", fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, letterSpacing: "0.2em", fontWeight: 700, transition: "all 0.2s" },
-  runBtnInner: { display: "flex", alignItems: "center", justifyContent: "center", gap: 12 },
-  spinner: { display: "inline-block", animation: "spin 1s linear infinite" },
-  loadingSection: { border: "1px solid #1a1a1a", padding: 32, marginBottom: 32 },
-  loadingGrid: { display: "flex", flexDirection: "column", gap: 12 },
-  loadingStep: { display: "flex", alignItems: "center", gap: 12, fontSize: 12, color: "#444", letterSpacing: "0.1em", animation: "fadeInUp 0.4s ease forwards", opacity: 0 },
-  loadingDot: { color: "#E8002D", fontSize: 8 },
-  errorBox: { border: "1px solid #FF444433", background: "#FF444408", padding: 16, fontSize: 12, color: "#FF8888", marginBottom: 24 },
-  digestContainer: { animation: "fadeInUp 0.5s ease forwards" },
-  digestHeader: { borderLeft: "3px solid #E8002D", paddingLeft: 20, marginBottom: 32 },
-  digestMeta: { display: "flex", gap: 16, alignItems: "center", marginBottom: 12 },
-  digestLabel: { fontSize: 10, letterSpacing: "0.25em", color: "#E8002D", fontWeight: 700 },
+  header: { borderBottom: "1px solid #141414", padding: "0 32px", position: "sticky", top: 0, background: "rgba(8,8,8,0.95)", backdropFilter: "blur(8px)", zIndex: 100 },
+  headerInner: { maxWidth: 1100, margin: "0 auto", height: 72, display: "flex", alignItems: "center", justifyContent: "space-between" },
+  nav: { display: "flex", alignItems: "center", gap: 16 },
+  navBtn: { padding: "8px 20px", border: "1px solid #E8002D", color: "#E8002D", textDecoration: "none", fontSize: 11, letterSpacing: "0.15em", fontFamily: "'IBM Plex Mono', monospace", transition: "all 0.2s" },
+  hero: { borderBottom: "1px solid #141414", padding: "64px 32px 48px", background: "linear-gradient(180deg, #0d0d0d 0%, #080808 100%)" },
+  heroInner: { maxWidth: 1100, margin: "0 auto" },
+  heroLabel: { fontSize: 10, letterSpacing: "0.3em", color: "#E8002D", marginBottom: 16, fontWeight: 700 },
+  heroTitle: { fontSize: 42, fontWeight: 900, color: "#fff", margin: "0 0 16px", lineHeight: 1.15, fontFamily: "'Arial Black', sans-serif", letterSpacing: "-0.02em" },
+  heroAccent: { color: "#E8002D" },
+  heroSub: { fontSize: 14, color: "#666", lineHeight: 1.7, maxWidth: 560, margin: 0 },
+  main: { maxWidth: 1100, margin: "0 auto", padding: "48px 32px 80px" },
+  loadingState: { display: "flex", alignItems: "center", gap: 12, padding: "48px 0", justifyContent: "center" },
+  loadingDot: { width: 8, height: 8, borderRadius: "50%", background: "#E8002D" },
+  loadingText: { fontSize: 12, color: "#444", letterSpacing: "0.1em" },
+  errorBox: { padding: 24, border: "1px solid #FF444433", background: "#FF444408", fontSize: 12, color: "#FF8888" },
+  digestMeta: { display: "flex", alignItems: "center", gap: 12, marginBottom: 16 },
+  digestWeek: { fontSize: 10, letterSpacing: "0.25em", color: "#E8002D", fontWeight: 700 },
   digestDate: { fontSize: 10, color: "#444", letterSpacing: "0.1em" },
-  digestTitle: { fontSize: 28, fontWeight: 700, color: "#fff", margin: "0 0 12px", lineHeight: 1.2, letterSpacing: "-0.02em", fontFamily: "'IBM Plex Mono', monospace" },
-  digestSummary: { fontSize: 13, color: "#888", lineHeight: 1.7, margin: 0, maxWidth: 640 },
-  itemsGrid: { display: "flex", flexDirection: "column", gap: 2, marginBottom: 24 },
-  regItem: { borderLeft: "3px solid", padding: "16px 20px", transition: "background 0.2s", animation: "fadeInUp 0.4s ease forwards", opacity: 0 },
-  itemTop: { display: "flex", gap: 8, alignItems: "center", marginBottom: 10, flexWrap: "wrap" },
+  digestDivider: { color: "#222" },
+  digestCount: { fontSize: 10, color: "#444", letterSpacing: "0.1em" },
+  digestTitle: { fontSize: 32, fontWeight: 900, color: "#fff", margin: "0 0 12px", fontFamily: "'Arial Black', sans-serif", letterSpacing: "-0.02em" },
+  digestSummary: { fontSize: 13, color: "#666", lineHeight: 1.7, margin: "0 0 32px", maxWidth: 720 },
+  seriesPills: { display: "flex", gap: 8, marginBottom: 40, flexWrap: "wrap" },
+  seriesPill: { padding: "6px 14px", border: "1px solid", fontSize: 10, letterSpacing: "0.15em", textDecoration: "none", fontFamily: "'IBM Plex Mono', monospace", transition: "all 0.2s", fontWeight: 700 },
+  newsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 2, marginBottom: 48 },
+  newsCard: { background: "#0d0d0d", borderTop: "2px solid", padding: "20px", animation: "fadeInUp 0.4s ease forwards", opacity: 0, transition: "background 0.2s" },
+  cardHeader: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12, flexWrap: "wrap" },
   seriesTag: { fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", border: "1px solid", padding: "2px 8px" },
   categoryTag: { fontSize: 10, color: "#555", letterSpacing: "0.1em" },
-  impactTag: { fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", border: "1px solid", padding: "2px 8px", marginLeft: "auto" },
-  itemHeadline: { fontSize: 14, fontWeight: 600, color: "#ddd", margin: "0 0 8px", lineHeight: 1.4, letterSpacing: "-0.01em" },
-  itemDetail: { fontSize: 12, color: "#777", lineHeight: 1.7, margin: "12px 0 8px", borderTop: "1px solid #1a1a1a", paddingTop: 12 },
-  itemExpand: { fontSize: 10, color: "#333", letterSpacing: "0.1em", marginTop: 4 },
-  insightBox: { border: "1px solid #00BFFF22", background: "#00BFFF08", padding: 20, marginBottom: 24 },
-  insightLabel: { fontSize: 10, letterSpacing: "0.2em", color: "#00BFFF", marginBottom: 10, fontWeight: 700 },
-  insightText: { fontSize: 12, color: "#888", lineHeight: 1.7, margin: 0 },
-  digestFooter: { display: "flex", gap: 12, fontSize: 10, color: "#333", letterSpacing: "0.1em", paddingTop: 16, borderTop: "1px solid #111" },
-  emptyState: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 24px", gap: 24 },
-  emptyIcon: { opacity: 0.4 },
-  emptyText: { fontSize: 12, color: "#333", textAlign: "center", maxWidth: 360, lineHeight: 1.7, letterSpacing: "0.05em" },
+  impactTag: { fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", border: "1px solid", padding: "2px 8px", marginLeft: "auto" },
+  cardHeadline: { fontSize: 15, fontWeight: 700, color: "#ddd", margin: "0 0 12px", lineHeight: 1.4, fontFamily: "'Arial Black', sans-serif", letterSpacing: "-0.01em" },
+  cardDetail: { fontSize: 12, color: "#777", lineHeight: 1.8, margin: "0 0 12px", borderTop: "1px solid #141414", paddingTop: 12, animation: "fadeInUp 0.2s ease forwards" },
+  cardFooter: { display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8 },
+  expandBtn: { background: "none", border: "none", color: "#333", fontSize: 10, letterSpacing: "0.1em", cursor: "pointer", fontFamily: "'IBM Plex Mono', monospace", padding: 0 },
+  sourceLink: { fontSize: 10, letterSpacing: "0.1em", textDecoration: "none", fontWeight: 700 },
+  insightBox: { border: "1px solid #00BFFF22", background: "#00BFFF06", padding: 28, marginTop: 8 },
+  insightHeader: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 },
+  insightIcon: { color: "#00BFFF", fontSize: 14 },
+  insightLabel: { fontSize: 10, letterSpacing: "0.2em", color: "#00BFFF", fontWeight: 700 },
+  insightText: { fontSize: 13, color: "#777", lineHeight: 1.8, margin: 0 },
+  footer: { borderTop: "1px solid #141414", padding: "48px 32px", background: "#050505", marginTop: 80 },
+  footerInner: { maxWidth: 1100, margin: "0 auto" },
+  footerLinks: { display: "flex", gap: 16, alignItems: "center", margin: "24px 0 16px", flexWrap: "wrap" },
+  footerLink: { fontSize: 11, color: "#444", textDecoration: "none", letterSpacing: "0.1em" },
+  footerDot: { color: "#222" },
+  footerCopy: { fontSize: 10, color: "#222", letterSpacing: "0.1em", margin: 0 },
 };
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&display=swap');
   * { box-sizing: border-box; }
-  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
-  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-  @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-  .series-btn:hover { transform: translateY(-1px); }
-  .run-btn:hover:not(:disabled) { background: #FF1A3C !important; transform: translateY(-1px); }
-  .loading-step { animation: fadeInUp 0.4s ease forwards !important; }
-  .digest-reveal { animation: fadeInUp 0.5s ease forwards; }
-  .reg-item:hover { background: #111 !important; }
-  .item-detail { animation: fadeInUp 0.25s ease forwards; }
+  body { margin: 0; }
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
+  .pulse { animation: pulse 1.5s ease infinite; }
+  .news-card:hover { background: #111 !important; }
+  .card-detail { animation: fadeInUp 0.2s ease forwards; }
+  a[style*="navBtn"]:hover { background: #E8002D; color: #fff; }
 `;
