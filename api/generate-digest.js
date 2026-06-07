@@ -1,4 +1,3 @@
-cat > /mnt/user-data/outputs/generate-digest.js << 'ENDOFFILE'
 import { put } from "@vercel/blob";
 import { Resend } from "resend";
 
@@ -172,5 +171,3 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: e.message });
   }
 }
-ENDOFFILE
-echo "Done"
