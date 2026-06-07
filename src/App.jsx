@@ -1,4 +1,3 @@
-cat > /mnt/user-data/outputs/App.jsx << 'ENDOFFILE'
 import { useState, useEffect } from "react";
 
 const SOURCE_LINKS = {
@@ -358,5 +357,3 @@ const css = `
   .news-card:hover { background: #111 !important; }
   .card-detail { animation: fadeInUp 0.2s ease forwards; }
 `;
-ENDOFFILE
-echo "Done"
