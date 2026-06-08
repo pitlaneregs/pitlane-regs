@@ -11,11 +11,11 @@ export default async function handler(req, res) {
   }
 
   const now = new Date();
-  const day = now.getDate().toString().padStart(2,'0');
   const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   const month = monthNames[now.getMonth()];
   const year = now.getFullYear();
-  const isoDate = now.toISOString().split("T")[0];
+  const day = now.getDate().toString().padStart(2,'0');
+  const isoDate = `${year}-${(now.getMonth()+1).toString().padStart(2,'0')}-${day}`;
   const today = `${day} ${month} ${year}`;
 
   try {
@@ -31,14 +31,13 @@ export default async function handler(req, res) {
         model: "claude-haiku-4-5-20251001",
         max_tokens: 1500,
         system: SYSTEM_PROMPT_SHORT,
-        messages: [{ role: "user", content: `Today is ${today} (ISO: ${isoDate}). The current month is ${month} ${year}. Write a motorsport regulations digest. Use digest_date: "${isoDate}" and include ${month} in the digest_title. Series: F1, MotoGP, WRC, Formula E, NASCAR, IndyCar. Return ONLY valid JSON.` }],
+        messages: [{ role: "user", content: `Today is ${today}. Write a motorsport regulations digest for F1, MotoGP, WRC, Formula E, NASCAR, IndyCar. Use digest_date: "${isoDate}". Return ONLY valid JSON.` }],
       }),
     });
 
     const shortData = await shortRes.json();
     const shortRaw = shortData.content?.find(b => b.type === "text")?.text || "";
-    const shortClean = shortRaw.replace(/```json|```/g, "").trim();
-    const shortDigest = JSON.parse(shortClean);
+    const shortDigest = JSON.parse(shortRaw.replace(/```json|```/g, "").trim());
 
     // Step 2 — Save short version to Blob
     await put("digest/latest.json", JSON.stringify(shortDigest), {
@@ -47,7 +46,7 @@ export default async function handler(req, res) {
       addRandomSuffix: false,
     });
 
-    // Step 3 — Generate newsletter as HTML directly (no JSON parsing issues)
+    // Step 3 — Generate newsletter as flowing magazine article
     const newsletterRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -58,20 +57,26 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: "claude-sonnet-4-5",
         max_tokens: 3000,
-        system: `You are a senior motorsport regulations analyst writing a professional newsletter email. Write in HTML format ready to paste into an email client. Use inline styles only. Background white, text dark.`,
-        messages: [{ role: "user", content: `Today is ${today}. Write the PitLane Regs weekly newsletter for F1, MotoGP, WRC, Formula E.
+        system: `You are a senior motorsport regulations correspondent writing for a professional audience of engineers, team managers and serious enthusiasts. Write in the style of a high-quality technical magazine — analytical, specific, authoritative. Use HTML with inline styles only.`,
+        messages: [{ role: "user", content: `Today is ${today}. Write the PitLane Regs weekly newsletter.
 
-For each regulation update write 4 clearly DIFFERENT sections:
-1. WHAT CHANGED: Only the specific factual change (1-2 sentences)
-2. WHY IT CHANGED: Only the political/competitive reasons behind it - do NOT repeat what changed
-3. TECHNICAL ANALYSIS: Engineering implications, how teams will adapt their cars - completely different from above sections
-4. WHO BENEFITS: Specific teams or manufacturers that gain advantage
+Write it as a flowing magazine article — NOT as a list of rigid sections. For each regulation story:
+- Open with a sharp lead sentence explaining the significance
+- Explain specifically what changed and why (these must be genuinely different sentences covering different information)
+- Provide real technical depth: aerodynamic effects, mechanical implications, how specific teams will need to adapt their car architecture or setup
+- Name specific teams, manufacturers or drivers that benefit or lose out — be specific, not generic
+- Reference historical precedent where relevant (e.g. "similar to the 2019 front wing regulation change...")
+- End each story with a direct link to the official source document
 
-End each item with a link to the official source document (specific URL, not homepage).
+Format in HTML. Use this structure for each story:
+- Series name + category as small red (#E8002D) monospace label
+- Story headline as h2
+- Body as flowing paragraphs (not bullet points, not rigid section headers)
+- Source link at end in red
 
-After all items add an OUTLOOK section about what to watch in coming weeks.
+After all stories, write a brief "What to watch" closing section.
 
-Format as clean HTML with inline styles. Use red (#E8002D) for section headers. Make it look professional.` }],
+Write about F1, MotoGP, WRC, Formula E. Be specific and technically detailed throughout.` }],
       }),
     });
 
@@ -79,28 +84,32 @@ Format as clean HTML with inline styles. Use red (#E8002D) for section headers. 
     const newsletterHtml = newsletterData.content?.find(b => b.type === "text")?.text || "<p>Newsletter generation failed</p>";
 
     // Step 4 — Wrap in email template
-    const emailHtml = `
-<!DOCTYPE html>
+    const emailHtml = `<!DOCTYPE html>
 <html>
-<body style="font-family:Arial,sans-serif;max-width:680px;margin:0 auto;padding:24px;background:#fff;color:#222">
-  <div style="border-top:3px solid #E8002D;padding-top:16px;margin-bottom:32px">
-    <div style="font-family:monospace;font-size:10px;color:#E8002D;font-weight:bold;letter-spacing:0.2em;margin-bottom:8px">PITLANE REGS · WEEKLY NEWSLETTER</div>
-    <p style="font-family:monospace;font-size:11px;color:#999;margin:0">${isoDate}</p>
+<body style="font-family:Georgia,serif;max-width:680px;margin:0 auto;padding:32px 24px;background:#fff;color:#222">
+  <div style="border-top:3px solid #E8002D;padding-top:20px;margin-bottom:32px">
+    <div style="font-family:monospace;font-size:10px;color:#E8002D;font-weight:bold;letter-spacing:0.25em;margin-bottom:6px">PITLANE REGS · WEEKLY NEWSLETTER</div>
+    <div style="font-family:monospace;font-size:11px;color:#999">${today} · pitlaneregs.com</div>
   </div>
   ${newsletterHtml}
-  <hr style="border:none;border-top:1px solid #eee;margin:32px 0"/>
-  <p style="font-size:11px;color:#bbb;font-family:monospace;text-align:center">
-    PitLane Regs · <a href="https://pitlaneregs.com" style="color:#E8002D;text-decoration:none">pitlaneregs.com</a>
-  </p>
+  <hr style="border:none;border-top:1px solid #eee;margin:40px 0 24px"/>
+  <div style="text-align:center">
+    <p style="font-size:11px;color:#bbb;font-family:monospace;margin:0">
+      PitLane Regs · <a href="https://pitlaneregs.com" style="color:#E8002D;text-decoration:none">pitlaneregs.com</a>
+    </p>
+    <p style="font-size:10px;color:#ddd;font-family:monospace;margin:8px 0 0">
+      <a href="https://pitlaneregs.beehiiv.com/subscribe" style="color:#E8002D;text-decoration:none">Subscribe</a> · Forward to a colleague who follows motorsport regulations
+    </p>
+  </div>
 </body>
 </html>`;
 
-    // Step 5 — Send email via Resend
+    // Step 5 — Send email
     const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
       from: "PitLane Regs <onboarding@resend.dev>",
       to: process.env.ADMIN_EMAIL,
-      subject: `📋 PitLane Regs — ${month} ${year} digest ready to publish`,
+      subject: `PitLane Regs — ${today} digest ready`,
       html: emailHtml,
     });
 
