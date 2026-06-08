@@ -131,7 +131,7 @@ export default function App() {
             <h2 style={s.digestTitle}>{digest.digest_title}</h2>
             <p style={s.digestSummary}>{digest.summary}</p>
 
-            {/* Series pills */}
+            {/* Series filter pills */}
             <div style={s.seriesPills}>
               <button
                 onClick={() => setActiveSeries(null)}
@@ -148,17 +148,16 @@ export default function App() {
               </button>
               {ALL_SERIES.map(series => {
                 const color = getSeriesColor(series);
-                const hasItems = digest.items?.some(i => i.series === series || i.series === "Formula 1");
+                const hasItems = digest.items?.some(i => i.series === series);
                 const isActive = activeSeries === series;
                 return (
                   <button
                     key={series}
-                    onClick={() => setActiveSeries(isActive ? null : series)}
+                    onClick={() => hasItems && setActiveSeries(isActive ? null : series)}
                     style={{
                       ...s.seriesPill,
-                      borderColor: isActive ? color : hasItems ? `${color}66` : "#222",
-                      color: isActive ? color : hasItems ? `${color}99` : "#333",
-                      opacity: hasItems ? 1 : 0.3,
+                      borderColor: isActive ? color : hasItems ? `${color}66` : "#1a1a1a",
+                      color: isActive ? color : hasItems ? `${color}99` : "#2a2a2a",
                       background: "transparent",
                       cursor: hasItems ? "pointer" : "default",
                       fontFamily: "'IBM Plex Mono', monospace",
@@ -172,7 +171,7 @@ export default function App() {
 
             {/* Official sources row */}
             <div style={s.sourcesRow}>
-              <span style={s.sourcesLabel}>Official sources:</span>
+              <span style={s.sourcesLabel}>Official sources →</span>
               {ALL_SERIES.map(series => (
                 <a
                   key={series}
@@ -242,26 +241,17 @@ export default function App() {
               })}
             </div>
 
-            {digest.cross_series_insight && (
-              <div style={s.insightBox}>
-                <div style={s.insightHeader}>
-                  <span style={s.insightIcon}>◈</span>
-                  <span style={s.insightLabel}>CROSS-SERIES INSIGHT</span>
-                </div>
-                <p style={s.insightText}>{digest.cross_series_insight}</p>
-              </div>
-            )}
-
             {/* Subscribe CTA */}
             <div style={s.subscribeCta}>
-              <p style={s.subscribeText}>Get the full analysis — technical deep-dives, historical context and source documents — every Monday in your inbox.</p>
+              <p style={s.subscribeTitle}>Want the full analysis?</p>
+              <p style={s.subscribeText}>The newsletter includes technical deep-dives, historical context, who benefits and direct links to official regulation documents — every Monday in your inbox.</p>
               <a
                 href="https://pitlaneregs.beehiiv.com/subscribe"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={s.subscribeBtn}
               >
-                ✉ Subscribe to newsletter →
+                ✉ Subscribe free →
               </a>
             </div>
           </>
@@ -331,14 +321,10 @@ const s = {
   cardFooter: { display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8 },
   expandBtn: { background: "none", border: "none", color: "#333", fontSize: 10, letterSpacing: "0.1em", cursor: "pointer", fontFamily: "'IBM Plex Mono', monospace", padding: 0 },
   sourceLink: { fontSize: 10, letterSpacing: "0.1em", textDecoration: "none", fontWeight: 700 },
-  insightBox: { border: "1px solid #00BFFF22", background: "#00BFFF06", padding: 28, marginBottom: 40 },
-  insightHeader: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 },
-  insightIcon: { color: "#00BFFF", fontSize: 14 },
-  insightLabel: { fontSize: 10, letterSpacing: "0.2em", color: "#00BFFF", fontWeight: 700 },
-  insightText: { fontSize: 13, color: "#777", lineHeight: 1.8, margin: 0 },
-  subscribeCta: { border: "1px solid #E8002D22", background: "#E8002D08", padding: 28, textAlign: "center", marginBottom: 40 },
-  subscribeText: { fontSize: 13, color: "#888", lineHeight: 1.7, margin: "0 0 16px", maxWidth: 500, marginLeft: "auto", marginRight: "auto" },
-  subscribeBtn: { display: "inline-block", padding: "12px 28px", border: "1px solid #E8002D", color: "#E8002D", textDecoration: "none", fontSize: 12, letterSpacing: "0.15em", fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700 },
+  subscribeCta: { border: "1px solid #E8002D22", background: "#E8002D06", padding: 32, textAlign: "center", marginBottom: 40 },
+  subscribeTitle: { fontSize: 18, fontWeight: 900, color: "#fff", margin: "0 0 8px", fontFamily: "'Arial Black', sans-serif" },
+  subscribeText: { fontSize: 13, color: "#666", lineHeight: 1.7, margin: "0 0 20px", maxWidth: 520, marginLeft: "auto", marginRight: "auto" },
+  subscribeBtn: { display: "inline-block", padding: "12px 32px", background: "#E8002D", color: "#fff", textDecoration: "none", fontSize: 12, letterSpacing: "0.15em", fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700 },
   footer: { borderTop: "1px solid #141414", padding: "48px 32px", background: "#050505", marginTop: 40 },
   footerInner: { maxWidth: 1100, margin: "0 auto" },
   footerLinks: { display: "flex", gap: 16, alignItems: "center", margin: "24px 0 16px", flexWrap: "wrap" },
