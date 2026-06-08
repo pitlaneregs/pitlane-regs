@@ -4,6 +4,15 @@ import { Resend } from "resend";
 const SYSTEM_PROMPT_SHORT = `Return ONLY this JSON, no other text:
 {"digest_title":"string","digest_date":"string","summary":"string","items":[{"series":"string","headline":"string","detail":"string","impact":"LOW|MEDIUM|HIGH","category":"Technical|Sporting|Financial|Safety"}]}`;
 
+const SERIES_SOURCES = {
+  "F1": { label: "FIA Formula 1 Regulations", url: "https://www.fia.com/regulation/category/110" },
+  "MotoGP": { label: "MotoGP Technical Regulations", url: "https://www.motogp.com/en/news/rules-and-regulations" },
+  "WRC": { label: "FIA WRC Regulations", url: "https://www.fia.com/regulation/category/185" },
+  "Formula E": { label: "FIA Formula E Regulations", url: "https://www.fia.com/regulation/category/1491" },
+  "NASCAR": { label: "NASCAR Rulebook", url: "https://www.nascar.com/rules" },
+  "IndyCar": { label: "IndyCar Rules", url: "https://www.indycar.com/Info/Rules" },
+};
+
 export default async function handler(req, res) {
   const secret = req.headers["x-cron-secret"] || req.body?.password;
   if (secret !== process.env.ADMIN_PASSWORD) {
@@ -46,7 +55,7 @@ export default async function handler(req, res) {
       addRandomSuffix: false,
     });
 
-    // Step 3 — Generate newsletter as flowing magazine article
+    // Step 3 — Generate newsletter content (no URLs - we add them ourselves)
     const newsletterRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -56,43 +65,63 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-5",
-        max_tokens: 3000,
-        system: `You are a senior motorsport regulations correspondent writing for a professional audience of engineers, team managers and serious enthusiasts. Write in the style of a high-quality technical magazine — analytical, specific, authoritative. Use HTML with inline styles only.`,
-        messages: [{ role: "user", content: `Today is ${today}. Write the PitLane Regs weekly newsletter.
+        max_tokens: 4000,
+        system: `You are a senior motorsport regulations analyst writing for engineers and team managers. Write analytically and specifically. Return HTML with inline styles only. DO NOT include any source links or URLs — these will be added separately.`,
+        messages: [{ role: "user", content: `Today is ${today}. Write the PitLane Regs weekly newsletter for F1, MotoGP, WRC, Formula E.
 
-Write it as a flowing magazine article — NOT as a list of rigid sections. For each regulation story:
-- Open with a sharp lead sentence explaining the significance
-- Explain specifically what changed and why (these must be genuinely different sentences covering different information)
-- Provide real technical depth: aerodynamic effects, mechanical implications, how specific teams will need to adapt their car architecture or setup
-- Name specific teams, manufacturers or drivers that benefit or lose out — be specific, not generic
-- Reference historical precedent where relevant (e.g. "similar to the 2019 front wing regulation change...")
-- End each story with a direct link to the official source document
+For each regulation story write flowing magazine prose (not bullet points, not rigid headers):
+- Sharp opening sentence on why this matters
+- What specifically changed (concrete, not generic)
+- The political or competitive context behind the change (genuinely different from what changed)
+- Technical depth: aerodynamic, mechanical or software implications — how teams adapt
+- Which specific teams or manufacturers benefit or lose out — be specific
+- Historical parallel if relevant
 
-Format in HTML. Use this structure for each story:
-- Series name + category as small red (#E8002D) monospace label
-- Story headline as h2
-- Body as flowing paragraphs (not bullet points, not rigid section headers)
-- Source link at end in red
+Use this HTML structure per story:
+<div style="margin-bottom:40px">
+  <div style="font-family:monospace;font-size:11px;color:#E8002D;font-weight:bold;letter-spacing:0.15em;margin-bottom:8px">SERIES / CATEGORY</div>
+  <h2 style="font-family:Arial Black;font-size:20px;color:#111;margin:0 0 16px;line-height:1.3">Headline</h2>
+  <p style="font-size:14px;line-height:1.8;color:#333;margin:0 0 12px">Paragraph...</p>
+</div>
 
-After all stories, write a brief "What to watch" closing section.
-
-Write about F1, MotoGP, WRC, Formula E. Be specific and technically detailed throughout.` }],
+Cover 4 stories: one F1, one MotoGP, one WRC, one Formula E.
+End with a brief "What to watch this week" section.
+DO NOT include any links or URLs anywhere.` }],
       }),
     });
 
     const newsletterData = await newsletterRes.json();
-    const newsletterHtml = newsletterData.content?.find(b => b.type === "text")?.text || "<p>Newsletter generation failed</p>";
+    let newsletterHtml = newsletterData.content?.find(b => b.type === "text")?.text || "<p>Newsletter generation failed</p>";
 
-    // Step 4 — Wrap in email template
+    // Step 4 — Inject verified source links for each series
+    const sourceLinksHtml = Object.entries(SERIES_SOURCES).map(([series, source]) => `
+      <div style="display:inline-block;margin:4px 8px 4px 0">
+        <a href="${source.url}" style="font-family:monospace;font-size:11px;color:#E8002D;text-decoration:none;border:1px solid #E8002D33;padding:4px 10px">
+          ${series} ↗
+        </a>
+      </div>
+    `).join("");
+
+    // Step 5 — Build final email
     const emailHtml = `<!DOCTYPE html>
 <html>
 <body style="font-family:Georgia,serif;max-width:680px;margin:0 auto;padding:32px 24px;background:#fff;color:#222">
+
   <div style="border-top:3px solid #E8002D;padding-top:20px;margin-bottom:32px">
     <div style="font-family:monospace;font-size:10px;color:#E8002D;font-weight:bold;letter-spacing:0.25em;margin-bottom:6px">PITLANE REGS · WEEKLY NEWSLETTER</div>
     <div style="font-family:monospace;font-size:11px;color:#999">${today} · pitlaneregs.com</div>
   </div>
+
   ${newsletterHtml}
+
   <hr style="border:none;border-top:1px solid #eee;margin:40px 0 24px"/>
+
+  <div style="margin-bottom:32px">
+    <div style="font-family:monospace;font-size:10px;color:#555;font-weight:bold;letter-spacing:0.15em;margin-bottom:12px">OFFICIAL REGULATION SOURCES</div>
+    ${sourceLinksHtml}
+  </div>
+
+  <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
   <div style="text-align:center">
     <p style="font-size:11px;color:#bbb;font-family:monospace;margin:0">
       PitLane Regs · <a href="https://pitlaneregs.com" style="color:#E8002D;text-decoration:none">pitlaneregs.com</a>
@@ -101,10 +130,11 @@ Write about F1, MotoGP, WRC, Formula E. Be specific and technically detailed thr
       <a href="https://pitlaneregs.beehiiv.com/subscribe" style="color:#E8002D;text-decoration:none">Subscribe</a> · Forward to a colleague who follows motorsport regulations
     </p>
   </div>
+
 </body>
 </html>`;
 
-    // Step 5 — Send email
+    // Step 6 — Send email
     const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
       from: "PitLane Regs <onboarding@resend.dev>",
