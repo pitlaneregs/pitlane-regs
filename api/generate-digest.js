@@ -55,7 +55,14 @@ export default async function handler(req, res) {
       addRandomSuffix: false,
     });
 
-    // Step 3 — Generate newsletter content (no URLs - we add them ourselves)
+    // Step 3 — Build digest summary to pass to newsletter generator
+    const digestSummary = shortDigest.items.map((item, i) =>
+      `${i+1}. [${item.series}] ${item.headline} (${item.category}, ${item.impact} impact)\n   Summary: ${item.detail}`
+    ).join("\n\n");
+
+    const seriesCovered = [...new Set(shortDigest.items.map(i => i.series))].join(", ");
+
+    // Step 4 — Generate newsletter expanding exactly the site digest items
     const newsletterRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -65,58 +72,66 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-5",
-        max_tokens: 4000,
-        system: `You are a senior motorsport regulations analyst writing for engineers and team managers. Write analytically and specifically. Return HTML with inline styles only. DO NOT include any source links or URLs — these will be added separately.`,
-        messages: [{ role: "user", content: `Today is ${today}. Write the PitLane Regs weekly newsletter for F1, MotoGP, WRC, Formula E.
+        max_tokens: 6000,
+        system: `You are a senior motorsport regulations analyst writing for engineers and team managers. Write analytically and specifically. Return HTML with inline styles only. DO NOT include any source links or URLs.`,
+        messages: [{ role: "user", content: `Today is ${today}. Write the PitLane Regs weekly newsletter.
 
-For each regulation story write flowing magazine prose (not bullet points, not rigid headers):
-- Sharp opening sentence on why this matters
-- What specifically changed (concrete, not generic)
-- The political or competitive context behind the change (genuinely different from what changed)
-- Technical depth: aerodynamic, mechanical or software implications — how teams adapt
-- Which specific teams or manufacturers benefit or lose out — be specific
-- Historical parallel if relevant
+The site digest published these ${shortDigest.items.length} stories today (${seriesCovered}):
+
+${digestSummary}
+
+Expand EVERY story from the list above into a full magazine article. Do not skip any. Cover them all in order.
+
+For each story write flowing magazine prose:
+- Sharp opening on why this matters to engineers and team managers
+- What specifically changed (concrete details beyond the summary above)
+- Political or competitive context behind the change
+- Technical depth: aerodynamic, mechanical or software implications
+- Which specific teams or manufacturers benefit or lose out
+- Historical parallel if relevant (e.g. similar to 2019...)
 
 Use this HTML structure per story:
-<div style="margin-bottom:40px">
-  <div style="font-family:monospace;font-size:11px;color:#E8002D;font-weight:bold;letter-spacing:0.15em;margin-bottom:8px">SERIES / CATEGORY</div>
+<div style="margin-bottom:48px;padding-bottom:40px;border-bottom:1px solid #eee">
+  <div style="font-family:monospace;font-size:11px;color:#E8002D;font-weight:bold;letter-spacing:0.15em;margin-bottom:8px">SERIES / CATEGORY · IMPACT</div>
   <h2 style="font-family:Arial Black;font-size:20px;color:#111;margin:0 0 16px;line-height:1.3">Headline</h2>
-  <p style="font-size:14px;line-height:1.8;color:#333;margin:0 0 12px">Paragraph...</p>
+  <p style="font-size:14px;line-height:1.9;color:#333;font-family:Georgia,serif;margin:0 0 14px">Paragraph...</p>
 </div>
 
-Cover 4 stories: one F1, one MotoGP, one WRC, one Formula E.
-End with a brief "What to watch this week" section.
-DO NOT include any links or URLs anywhere.` }],
+End with a "What to watch" closing paragraph.
+DO NOT include any URLs or links anywhere in the content.` }],
       }),
     });
 
     const newsletterData = await newsletterRes.json();
-    let newsletterHtml = newsletterData.content?.find(b => b.type === "text")?.text || "<p>Newsletter generation failed</p>";
+    const newsletterHtml = newsletterData.content?.find(b => b.type === "text")?.text || "<p>Newsletter generation failed</p>";
 
-    // Step 4 — Inject verified source links for each series
-    const sourceLinksHtml = Object.entries(SERIES_SOURCES).map(([series, source]) => `
-      <div style="display:inline-block;margin:4px 8px 4px 0">
-        <a href="${source.url}" style="font-family:monospace;font-size:11px;color:#E8002D;text-decoration:none;border:1px solid #E8002D33;padding:4px 10px">
-          ${series} ↗
+    // Step 5 — Build source links only for series that appeared in digest
+    const seriesInDigest = [...new Set(shortDigest.items.map(i => i.series))];
+    const sourceLinksHtml = seriesInDigest
+      .filter(s => SERIES_SOURCES[s])
+      .map(s => `
+        <a href="${SERIES_SOURCES[s].url}" style="display:inline-block;font-family:monospace;font-size:11px;color:#E8002D;text-decoration:none;border:1px solid #E8002D44;padding:5px 12px;margin:4px 6px 4px 0">
+          ${s} ↗
         </a>
-      </div>
-    `).join("");
+      `).join("");
 
-    // Step 5 — Build final email
+    // Step 6 — Build final email
     const emailHtml = `<!DOCTYPE html>
 <html>
 <body style="font-family:Georgia,serif;max-width:680px;margin:0 auto;padding:32px 24px;background:#fff;color:#222">
 
   <div style="border-top:3px solid #E8002D;padding-top:20px;margin-bottom:32px">
     <div style="font-family:monospace;font-size:10px;color:#E8002D;font-weight:bold;letter-spacing:0.25em;margin-bottom:6px">PITLANE REGS · WEEKLY NEWSLETTER</div>
-    <div style="font-family:monospace;font-size:11px;color:#999">${today} · pitlaneregs.com</div>
+    <div style="font-family:monospace;font-size:11px;color:#999">${today} · ${shortDigest.items.length} stories · pitlaneregs.com</div>
+  </div>
+
+  <div style="background:#f9f9f9;padding:16px 20px;border-left:3px solid #E8002D;margin-bottom:36px">
+    <p style="font-size:13px;line-height:1.7;color:#555;margin:0;font-family:monospace">${shortDigest.summary}</p>
   </div>
 
   ${newsletterHtml}
 
-  <hr style="border:none;border-top:1px solid #eee;margin:40px 0 24px"/>
-
-  <div style="margin-bottom:32px">
+  <div style="margin:40px 0 24px">
     <div style="font-family:monospace;font-size:10px;color:#555;font-weight:bold;letter-spacing:0.15em;margin-bottom:12px">OFFICIAL REGULATION SOURCES</div>
     ${sourceLinksHtml}
   </div>
@@ -134,12 +149,12 @@ DO NOT include any links or URLs anywhere.` }],
 </body>
 </html>`;
 
-    // Step 6 — Send email
+    // Step 7 — Send email
     const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
       from: "PitLane Regs <onboarding@resend.dev>",
       to: process.env.ADMIN_EMAIL,
-      subject: `PitLane Regs — ${today} digest ready`,
+      subject: `PitLane Regs — ${today} (${shortDigest.items.length} stories)`,
       html: emailHtml,
     });
 
