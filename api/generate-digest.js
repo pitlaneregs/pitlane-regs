@@ -2,10 +2,21 @@ import { put } from "@vercel/blob";
 import { Resend } from "resend";
 
 const SYSTEM_PROMPT_SHORT = `Return ONLY this JSON, no other text:
-{"digest_title":"string","digest_date":"string","summary":"string","items":[{"series":"string","headline":"string","detail":"string","impact":"LOW|MEDIUM|HIGH","category":"Technical|Sporting|Financial|Safety"}],"cross_series_insight":"string"}`;
+{"digest_title":"string","digest_date":"string","summary":"string","items":[{"series":"string","headline":"string","detail":"string","impact":"LOW|MEDIUM|HIGH","category":"Technical|Sporting|Financial|Safety"}]}`;
 
-const SYSTEM_PROMPT_FULL = `You are a senior motorsport regulations analyst with deep technical expertise. You MUST return ONLY a valid JSON object. No markdown, no backticks, no text before or after the JSON. Return ONLY this structure:
-{"digest_title":"string","digest_date":"string","executive_summary":"string","items":[{"series":"string","headline":"string","what_changed":"string","why_it_changed":"string","technical_analysis":"string","who_benefits":"string","historical_context":"string","impact":"LOW|MEDIUM|HIGH","category":"Technical|Sporting|Financial|Safety","source_url":"string","source_document":"string"}],"cross_series_insight":"string","outlook":"string"}`;
+const SYSTEM_PROMPT_FULL = `You are a senior motorsport regulations analyst. You MUST return ONLY a valid JSON object. No markdown, no backticks, no text before or after the JSON.
+
+Each item MUST have clearly distinct sections:
+- "what_changed": factual description of the specific regulation change (1-2 sentences, concrete and specific)
+- "why_it_changed": the reasons and political/competitive context behind the change (different from what_changed)
+- "technical_analysis": engineering and performance implications, aerodynamic/mechanical effects, how teams will adapt (different from the above)
+- "who_benefits": specific teams, manufacturers or drivers that gain competitive advantage
+- "historical_context": comparison with previous regulations or similar historical changes
+- "source_url": the EXACT URL to the official document, press release or regulation page (must be a real, specific URL for the series, not a homepage)
+- "source_document": name of the document or page
+
+Return ONLY this structure:
+{"digest_title":"string","digest_date":"string","executive_summary":"string","items":[{"series":"string","headline":"string","what_changed":"string","why_it_changed":"string","technical_analysis":"string","who_benefits":"string","historical_context":"string","impact":"LOW|MEDIUM|HIGH","category":"Technical|Sporting|Financial|Safety","source_url":"string","source_document":"string"}],"outlook":"string"}`;
 
 export default async function handler(req, res) {
   const secret = req.headers["x-cron-secret"] || req.body?.password;
@@ -58,7 +69,16 @@ export default async function handler(req, res) {
         model: "claude-sonnet-4-5",
         max_tokens: 2000,
         system: SYSTEM_PROMPT_FULL,
-        messages: [{ role: "user", content: `Today is ${today}. Write a DEEPLY DETAILED motorsport regulations newsletter for F1, MotoGP, WRC, Formula E. For each item include: what exactly changed, why it changed, full technical analysis, which teams/manufacturers benefit, historical context comparing to previous regulations, and direct URLs to official FIA/FIM/series documents. Use exactly these series names: "F1", "MotoGP", "WRC", "Formula E". You MUST return ONLY a valid JSON object. No markdown, no backticks, no text before or after the JSON.` }],
+        messages: [{ role: "user", content: `Today is ${today}. Write a deeply detailed motorsport regulations newsletter for F1, MotoGP, WRC, Formula E. 
+
+IMPORTANT: Each section must be clearly distinct:
+- what_changed: ONLY the factual change itself
+- why_it_changed: ONLY the political/competitive reasons (do NOT repeat what changed)
+- technical_analysis: ONLY engineering implications and how teams adapt (do NOT repeat previous sections)
+- source_url: provide a SPECIFIC URL to the regulation document or official announcement, not just the homepage
+
+Use exactly these series names: "F1", "MotoGP", "WRC", "Formula E".
+Return ONLY valid JSON, no markdown, no backticks.` }],
       }),
     });
 
@@ -75,8 +95,17 @@ export default async function handler(req, res) {
         digest_title: shortDigest.digest_title,
         digest_date: isoDate,
         executive_summary: shortDigest.summary,
-        items: shortDigest.items.map(i => ({...i, what_changed: i.detail, technical_analysis: i.detail})),
-        cross_series_insight: shortDigest.cross_series_insight,
+        items: shortDigest.items.map(i => ({
+          ...i,
+          what_changed: i.detail,
+          why_it_changed: "",
+          technical_analysis: "",
+          who_benefits: "",
+          historical_context: "",
+          source_url: "",
+          source_document: "",
+        })),
+        outlook: "",
       };
     }
 
@@ -91,7 +120,7 @@ export default async function handler(req, res) {
   </div>
 
   <div style="background:#f9f9f9;padding:16px;border-left:3px solid #E8002D;margin-bottom:32px">
-    <p style="font-size:14px;line-height:1.7;color:#444;margin:0"><strong>Executive Summary:</strong> ${fullDigest.executive_summary || fullDigest.summary || ""}</p>
+    <p style="font-size:14px;line-height:1.7;color:#444;margin:0"><strong>Executive Summary:</strong> ${fullDigest.executive_summary || ""}</p>
   </div>
 
   <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
@@ -104,42 +133,36 @@ export default async function handler(req, res) {
       <h2 style="font-family:Arial Black;font-size:18px;margin:0 0 16px;color:#111;line-height:1.3;border-bottom:1px solid #eee;padding-bottom:12px">${item.headline}</h2>
 
       ${item.what_changed ? `
-      <p style="font-size:12px;font-family:monospace;color:#E8002D;font-weight:bold;margin:0 0 4px;letter-spacing:0.05em">WHAT CHANGED</p>
-      <p style="font-size:13px;line-height:1.8;color:#444;margin:0 0 16px">${item.what_changed}</p>` : ""}
+      <p style="font-size:11px;font-family:monospace;color:#555;font-weight:bold;margin:0 0 4px;letter-spacing:0.05em;text-transform:uppercase">What changed</p>
+      <p style="font-size:13px;line-height:1.8;color:#333;margin:0 0 16px;padding:12px;background:#f9f9f9">${item.what_changed}</p>` : ""}
 
       ${item.why_it_changed ? `
-      <p style="font-size:12px;font-family:monospace;color:#E8002D;font-weight:bold;margin:0 0 4px;letter-spacing:0.05em">WHY IT CHANGED</p>
+      <p style="font-size:11px;font-family:monospace;color:#555;font-weight:bold;margin:0 0 4px;letter-spacing:0.05em;text-transform:uppercase">Why it changed</p>
       <p style="font-size:13px;line-height:1.8;color:#444;margin:0 0 16px">${item.why_it_changed}</p>` : ""}
 
       ${item.technical_analysis ? `
-      <p style="font-size:12px;font-family:monospace;color:#E8002D;font-weight:bold;margin:0 0 4px;letter-spacing:0.05em">TECHNICAL ANALYSIS</p>
+      <p style="font-size:11px;font-family:monospace;color:#E8002D;font-weight:bold;margin:0 0 4px;letter-spacing:0.05em;text-transform:uppercase">Technical analysis</p>
       <p style="font-size:13px;line-height:1.8;color:#444;margin:0 0 16px">${item.technical_analysis}</p>` : ""}
 
       ${item.who_benefits ? `
-      <p style="font-size:12px;font-family:monospace;color:#E8002D;font-weight:bold;margin:0 0 4px;letter-spacing:0.05em">WHO BENEFITS</p>
+      <p style="font-size:11px;font-family:monospace;color:#555;font-weight:bold;margin:0 0 4px;letter-spacing:0.05em;text-transform:uppercase">Who benefits</p>
       <p style="font-size:13px;line-height:1.8;color:#444;margin:0 0 16px">${item.who_benefits}</p>` : ""}
 
       ${item.historical_context ? `
-      <p style="font-size:12px;font-family:monospace;color:#999;font-weight:bold;margin:0 0 4px;letter-spacing:0.05em">HISTORICAL CONTEXT</p>
+      <p style="font-size:11px;font-family:monospace;color:#999;font-weight:bold;margin:0 0 4px;letter-spacing:0.05em;text-transform:uppercase">Historical context</p>
       <p style="font-size:13px;line-height:1.8;color:#666;margin:0 0 16px;font-style:italic">${item.historical_context}</p>` : ""}
 
       ${item.source_url ? `
-      <div style="background:#f5f5f5;padding:10px 14px;display:inline-block">
-        <a href="${item.source_url}" style="font-size:11px;color:#E8002D;text-decoration:none;font-family:monospace;font-weight:bold">
-          ↗ ${item.source_document || "Official source"}
+      <div style="margin-top:8px">
+        <a href="${item.source_url}" style="display:inline-block;padding:8px 14px;background:#f5f5f5;font-size:11px;color:#E8002D;text-decoration:none;font-family:monospace;font-weight:bold;border-left:2px solid #E8002D">
+          ↗ ${item.source_document || item.source_url}
         </a>
       </div>` : ""}
     </div>
   `).join('<hr style="border:none;border-top:1px solid #eee;margin:32px 0"/>')}
 
-  <hr style="border:none;border-top:1px solid #eee;margin:32px 0"/>
-
-  <div style="background:#f0f8ff;padding:20px;border-left:3px solid #00BFFF;margin-bottom:24px">
-    <p style="font-family:monospace;font-size:10px;color:#00BFFF;font-weight:bold;margin:0 0 8px;letter-spacing:0.1em">◈ CROSS-SERIES INSIGHT</p>
-    <p style="font-size:13px;line-height:1.7;color:#444;margin:0">${fullDigest.cross_series_insight || ""}</p>
-  </div>
-
   ${fullDigest.outlook ? `
+  <hr style="border:none;border-top:1px solid #eee;margin:32px 0"/>
   <div style="background:#fff9f0;padding:20px;border-left:3px solid #FF8900;margin-bottom:24px">
     <p style="font-family:monospace;font-size:10px;color:#FF8900;font-weight:bold;margin:0 0 8px;letter-spacing:0.1em">⟳ OUTLOOK</p>
     <p style="font-size:13px;line-height:1.7;color:#444;margin:0">${fullDigest.outlook}</p>
