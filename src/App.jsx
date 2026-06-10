@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 
 const SOURCE_LINKS = {
   "F1": "https://www.fia.com/regulation/category/110",
@@ -92,7 +93,94 @@ function SubscribeForm() {
   );
 }
 
-export default function App() {
+function Header() {
+  return (
+    <header style={s.header}>
+      <div style={s.headerInner}>
+        <Link to="/" style={{ textDecoration: "none" }}>
+          <PLRLogo />
+        </Link>
+        <nav style={s.nav}>
+          <Link to="/subscribe" style={s.navBtn}>
+            ✉ Subscribe
+          </Link>
+        </nav>
+      </div>
+    </header>
+  );
+}
+
+function Footer() {
+  return (
+    <footer style={s.footer}>
+      <div style={s.footerInner}>
+        <PLRLogo />
+        <div style={s.footerLinks}>
+          <Link to="/subscribe" style={s.footerLink}>Subscribe</Link>
+          <span style={s.footerDot}>·</span>
+          <a href="https://www.fia.com" target="_blank" rel="noopener noreferrer" style={s.footerLink}>FIA</a>
+          <span style={s.footerDot}>·</span>
+          <a href="https://www.fim-moto.com" target="_blank" rel="noopener noreferrer" style={s.footerLink}>FIM</a>
+          <span style={s.footerDot}>·</span>
+          <a href="https://www.wrc.com" target="_blank" rel="noopener noreferrer" style={s.footerLink}>WRC</a>
+          <span style={s.footerDot}>·</span>
+          <a href="https://www.nascar.com" target="_blank" rel="noopener noreferrer" style={s.footerLink}>NASCAR</a>
+          <span style={s.footerDot}>·</span>
+          <a href="https://www.indycar.com" target="_blank" rel="noopener noreferrer" style={s.footerLink}>IndyCar</a>
+        </div>
+        <p style={s.footerCopy}>© 2026 PitLane Regs · Motorsport Regulatory Intelligence</p>
+      </div>
+    </footer>
+  );
+}
+
+function SubscribePage() {
+  return (
+    <div style={s.root}>
+      <style>{css}</style>
+      <Header />
+
+      <div style={sp.hero}>
+        <div style={sp.heroInner}>
+          <div style={s.heroLabel}>FREE NEWSLETTER</div>
+          <h1 style={sp.title}>Motorsport regulations,<br /><span style={s.heroAccent}>decoded every Monday.</span></h1>
+          <p style={sp.sub}>Join engineers, journalists and racing professionals who rely on PitLane Regs to track what's changing — and why it matters.</p>
+          <div style={{ marginTop: 40 }}>
+            <SubscribeForm />
+          </div>
+        </div>
+      </div>
+
+      <div style={sp.features}>
+        <div style={sp.featuresInner}>
+          {[
+            { icon: "⚙", title: "Technical deep-dives", text: "Not just what changed — but how it affects car design, strategy and performance." },
+            { icon: "🏁", title: "All major series", text: "F1, MotoGP, WRC, Formula E, NASCAR and IndyCar in one place." },
+            { icon: "📄", title: "Direct to source", text: "Every update links to the official regulation document so you can verify yourself." },
+            { icon: "🎯", title: "Who benefits", text: "Each change is analysed for which teams, manufacturers or competitors gain an edge." },
+          ].map((f, i) => (
+            <div key={i} style={sp.featureCard}>
+              <div style={sp.featureIcon}>{f.icon}</div>
+              <div style={sp.featureTitle}>{f.title}</div>
+              <div style={sp.featureText}>{f.text}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={sp.ctaBottom}>
+        <div style={sp.ctaInner}>
+          <p style={sp.ctaTitle}>Every Monday. Always free.</p>
+          <SubscribeForm />
+        </div>
+      </div>
+
+      <Footer />
+    </div>
+  );
+}
+
+function HomePage() {
   const [digest, setDigest] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -128,17 +216,7 @@ export default function App() {
   return (
     <div style={s.root}>
       <style>{css}</style>
-
-      <header style={s.header}>
-        <div style={s.headerInner}>
-          <PLRLogo />
-          <nav style={s.nav}>
-            <a href="/subscribe" style={s.navBtn}>
-              ✉ Subscribe
-            </a>
-          </nav>
-        </div>
-      </header>
+      <Header />
 
       <div style={s.hero}>
         <div style={s.heroInner}>
@@ -296,26 +374,19 @@ export default function App() {
         )}
       </main>
 
-      <footer style={s.footer}>
-        <div style={s.footerInner}>
-          <PLRLogo />
-          <div style={s.footerLinks}>
-            <a href="/subscribe" style={s.footerLink}>Subscribe</a>
-            <span style={s.footerDot}>·</span>
-            <a href="https://www.fia.com" target="_blank" rel="noopener noreferrer" style={s.footerLink}>FIA</a>
-            <span style={s.footerDot}>·</span>
-            <a href="https://www.fim-moto.com" target="_blank" rel="noopener noreferrer" style={s.footerLink}>FIM</a>
-            <span style={s.footerDot}>·</span>
-            <a href="https://www.wrc.com" target="_blank" rel="noopener noreferrer" style={s.footerLink}>WRC</a>
-            <span style={s.footerDot}>·</span>
-            <a href="https://www.nascar.com" target="_blank" rel="noopener noreferrer" style={s.footerLink}>NASCAR</a>
-            <span style={s.footerDot}>·</span>
-            <a href="https://www.indycar.com" target="_blank" rel="noopener noreferrer" style={s.footerLink}>IndyCar</a>
-          </div>
-          <p style={s.footerCopy}>© 2026 PitLane Regs · Motorsport Regulatory Intelligence</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/subscribe" element={<SubscribePage />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
@@ -348,6 +419,22 @@ const sf = {
   success: { color: "#66FFB2", fontSize: 12, margin: 0, letterSpacing: "0.1em" },
   error: { color: "#FF6B6B", fontSize: 11, margin: "6px 0 0", letterSpacing: "0.05em" },
   note: { fontSize: 10, color: "#333", margin: "8px 0 0", letterSpacing: "0.1em" },
+};
+
+const sp = {
+  hero: { borderBottom: "1px solid #141414", padding: "80px 32px 64px", background: "linear-gradient(180deg, #0d0d0d 0%, #080808 100%)" },
+  heroInner: { maxWidth: 680, margin: "0 auto", textAlign: "center" },
+  title: { fontSize: 42, fontWeight: 900, color: "#fff", margin: "0 0 16px", lineHeight: 1.15, fontFamily: "'Arial Black', sans-serif", letterSpacing: "-0.02em" },
+  sub: { fontSize: 15, color: "#666", lineHeight: 1.7, margin: "0 auto" },
+  features: { padding: "64px 32px", borderBottom: "1px solid #141414" },
+  featuresInner: { maxWidth: 1100, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 2 },
+  featureCard: { background: "#0d0d0d", padding: 24, borderTop: "2px solid #E8002D22" },
+  featureIcon: { fontSize: 24, marginBottom: 12 },
+  featureTitle: { fontSize: 13, fontWeight: 700, color: "#ddd", marginBottom: 8, letterSpacing: "0.05em" },
+  featureText: { fontSize: 12, color: "#555", lineHeight: 1.7 },
+  ctaBottom: { padding: "64px 32px", background: "#0d0d0d", borderBottom: "1px solid #141414" },
+  ctaInner: { maxWidth: 520, margin: "0 auto", textAlign: "center" },
+  ctaTitle: { fontSize: 20, fontWeight: 900, color: "#fff", margin: "0 0 24px", fontFamily: "'Arial Black', sans-serif" },
 };
 
 const s = {
