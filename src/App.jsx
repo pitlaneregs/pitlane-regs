@@ -48,6 +48,50 @@ function PLRLogo() {
   );
 }
 
+function SubscribeForm() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState(null);
+
+  const handleSubmit = () => {
+    if (!email || !email.includes("@")) {
+      setStatus("invalid");
+      return;
+    }
+    const url = `https://pitlaneregs.beehiiv.com/subscribe?email=${encodeURIComponent(email)}`;
+    window.open(url, "_blank");
+    setStatus("redirected");
+  };
+
+  return (
+    <div style={sf.wrap}>
+      {status === "redirected" ? (
+        <p style={sf.success}>✓ Redirecting to confirm your subscription...</p>
+      ) : (
+        <div style={sf.row}>
+          <input
+            type="email"
+            placeholder="your@email.com"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleSubmit()}
+            style={{
+              ...sf.input,
+              borderColor: status === "invalid" ? "#E8002D" : "#222",
+            }}
+          />
+          <button onClick={handleSubmit} style={sf.btn}>
+            Subscribe free →
+          </button>
+        </div>
+      )}
+      {status === "invalid" && (
+        <p style={sf.error}>Please enter a valid email address.</p>
+      )}
+      <p style={sf.note}>Free. No spam. Unsubscribe anytime.</p>
+    </div>
+  );
+}
+
 export default function App() {
   const [digest, setDigest] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -89,7 +133,7 @@ export default function App() {
         <div style={s.headerInner}>
           <PLRLogo />
           <nav style={s.nav}>
-            <a href="https://pitlaneregs.beehiiv.com/subscribe" target="_blank" rel="noopener noreferrer" style={s.navBtn}>
+            <a href="/subscribe" style={s.navBtn}>
               ✉ Subscribe
             </a>
           </nav>
@@ -101,6 +145,9 @@ export default function App() {
           <div style={s.heroLabel}>MOTORSPORT REGULATORY INTELLIGENCE</div>
           <h1 style={s.heroTitle}>The definitive source for<br /><span style={s.heroAccent}>motorsport regulation updates</span></h1>
           <p style={s.heroSub}>Weekly analysis of F1, MotoGP, WRC, Formula E, NASCAR and IndyCar regulatory changes — explained in plain English.</p>
+          <div style={{ marginTop: 32 }}>
+            <SubscribeForm />
+          </div>
         </div>
       </div>
 
@@ -131,7 +178,6 @@ export default function App() {
             <h2 style={s.digestTitle}>{digest.digest_title}</h2>
             <p style={s.digestSummary}>{digest.summary}</p>
 
-            {/* Series filter pills */}
             <div style={s.seriesPills}>
               <button
                 onClick={() => setActiveSeries(null)}
@@ -169,7 +215,6 @@ export default function App() {
               })}
             </div>
 
-            {/* Official sources row */}
             <div style={s.sourcesRow}>
               <span style={s.sourcesLabel}>Official sources →</span>
               {ALL_SERIES.map(series => (
@@ -185,7 +230,6 @@ export default function App() {
               ))}
             </div>
 
-            {/* News grid */}
             <div style={s.newsGrid}>
               {filteredItems?.map((item, i) => {
                 const color = getSeriesColor(item.series);
@@ -241,18 +285,12 @@ export default function App() {
               })}
             </div>
 
-            {/* Subscribe CTA */}
             <div style={s.subscribeCta}>
               <p style={s.subscribeTitle}>Want the full analysis?</p>
               <p style={s.subscribeText}>The newsletter includes technical deep-dives, historical context, who benefits and direct links to official regulation documents — every Monday in your inbox.</p>
-              <a
-                href="https://pitlaneregs.beehiiv.com/subscribe"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={s.subscribeBtn}
-              >
-                ✉ Subscribe free →
-              </a>
+              <div style={{ display: "flex", justifyContent: "center", marginTop: 20 }}>
+                <SubscribeForm />
+              </div>
             </div>
           </>
         )}
@@ -262,7 +300,7 @@ export default function App() {
         <div style={s.footerInner}>
           <PLRLogo />
           <div style={s.footerLinks}>
-            <a href="https://pitlaneregs.beehiiv.com/subscribe" target="_blank" rel="noopener noreferrer" style={s.footerLink}>Subscribe</a>
+            <a href="/subscribe" style={s.footerLink}>Subscribe</a>
             <span style={s.footerDot}>·</span>
             <a href="https://www.fia.com" target="_blank" rel="noopener noreferrer" style={s.footerLink}>FIA</a>
             <span style={s.footerDot}>·</span>
@@ -280,6 +318,37 @@ export default function App() {
     </div>
   );
 }
+
+const sf = {
+  wrap: { width: "100%", maxWidth: 520 },
+  row: { display: "flex", gap: 0 },
+  input: {
+    flex: 1,
+    background: "#0d0d0d",
+    border: "1px solid #222",
+    borderRight: "none",
+    color: "#e0e0e0",
+    padding: "12px 16px",
+    fontSize: 12,
+    fontFamily: "'IBM Plex Mono', monospace",
+    outline: "none",
+  },
+  btn: {
+    background: "#E8002D",
+    color: "#fff",
+    border: "none",
+    padding: "12px 24px",
+    fontSize: 11,
+    letterSpacing: "0.1em",
+    fontFamily: "'IBM Plex Mono', monospace",
+    fontWeight: 700,
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+  },
+  success: { color: "#66FFB2", fontSize: 12, margin: 0, letterSpacing: "0.1em" },
+  error: { color: "#FF6B6B", fontSize: 11, margin: "6px 0 0", letterSpacing: "0.05em" },
+  note: { fontSize: 10, color: "#333", margin: "8px 0 0", letterSpacing: "0.1em" },
+};
 
 const s = {
   root: { minHeight: "100vh", background: "#080808", color: "#e0e0e0", fontFamily: "'IBM Plex Mono', 'Courier New', monospace" },
