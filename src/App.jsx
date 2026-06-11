@@ -499,4 +499,3 @@ const css = `
   .news-card:hover { background: #111 !important; }
   .card-detail { animation: fadeInUp 0.2s ease forwards; }
 `;
-
