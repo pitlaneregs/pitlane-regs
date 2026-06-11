@@ -442,7 +442,7 @@ const s = {
   header: { borderBottom: "1px solid #141414", padding: "0 32px", position: "sticky", top: 0, background: "rgba(8,8,8,0.95)", backdropFilter: "blur(8px)", zIndex: 100 },
   headerInner: { maxWidth: 1100, margin: "0 auto", height: 72, display: "flex", alignItems: "center", justifyContent: "space-between" },
   nav: { display: "flex", alignItems: "center", gap: 16 },
-  navBtn: { padding: "8px 20px", border: "1px solid #E8002D", color: "#E8002D", textDecoration: "none", fontSize: 11, letterSpacing: "0.15em", fontFamily: "'IBM Plex Mono', monospace", transition: "all 0.2s" },
+  navBtn: { padding: "8px 20px", border: "1px solid #E8002D", color: "#E8002D", textDecoration: "none", fontSize: 11, letterSpacing: "0.15em", fontFamily: "'IBM Plex Mono', monospace", transition: "all 0.2s", cursor: "pointer" },
   hero: { borderBottom: "1px solid #141414", padding: "64px 32px 48px", background: "linear-gradient(180deg, #0d0d0d 0%, #080808 100%)" },
   heroInner: { maxWidth: 1100, margin: "0 auto" },
   heroLabel: { fontSize: 10, letterSpacing: "0.3em", color: "#E8002D", marginBottom: 16, fontWeight: 700 },
