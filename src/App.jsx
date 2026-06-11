@@ -477,7 +477,7 @@ const s = {
   cardFooter: { display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8 },
   expandBtn: { background: "none", border: "none", color: "#333", fontSize: 10, letterSpacing: "0.1em", cursor: "pointer", fontFamily: "'IBM Plex Mono', monospace", padding: 0 },
   sourceLink: { fontSize: 10, letterSpacing: "0.1em", textDecoration: "none", fontWeight: 700 },
-  subscribeCta: { border: "1px solid #E8002D22", background: "#E8002D06", padding: 32, textAlign: "center", marginBottom: 40 },
+  subsubscribeCta: { border: "1px solid #E8002D22", background: "#E8002D06", padding: "32px 32px 80px", textAlign: "center", marginBottom: 40 },
   subscribeTitle: { fontSize: 18, fontWeight: 900, color: "#fff", margin: "0 0 8px", fontFamily: "'Arial Black', sans-serif" },
   subscribeText: { fontSize: 13, color: "#666", lineHeight: 1.7, margin: "0 0 20px", maxWidth: 520, marginLeft: "auto", marginRight: "auto" },
   subscribeBtn: { display: "inline-block", padding: "12px 32px", background: "#E8002D", color: "#fff", textDecoration: "none", fontSize: 12, letterSpacing: "0.15em", fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700 },
