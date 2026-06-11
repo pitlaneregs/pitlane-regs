@@ -432,7 +432,7 @@ const sp = {
   featureIcon: { fontSize: 24, marginBottom: 12 },
   featureTitle: { fontSize: 13, fontWeight: 700, color: "#ddd", marginBottom: 8, letterSpacing: "0.05em" },
   featureText: { fontSize: 12, color: "#555", lineHeight: 1.7 },
-  ctaBottom: { padding: "64px 32px", background: "#0d0d0d", borderBottom: "1px solid #141414" },
+  ctaBottom: { padding: "64px 32px 80px", background: "#0d0d0d", borderBottom: "1px solid #141414" },
   ctaInner: { maxWidth: 520, margin: "0 auto", textAlign: "center" },
   ctaTitle: { fontSize: 20, fontWeight: 900, color: "#fff", margin: "0 0 24px", fontFamily: "'Arial Black', sans-serif" },
 };
@@ -499,4 +499,3 @@ const css = `
   .news-card:hover { background: #111 !important; }
   .card-detail { animation: fadeInUp 0.2s ease forwards; }
 `;
-
