@@ -36,35 +36,6 @@ const CATEGORY_ICONS = {
 
 const ALL_SERIES = ["F1", "MotoGP", "WRC", "Formula E", "NASCAR", "IndyCar"];
 
-const BLOG_POSTS = [
-  {
-    slug: "f1-2026-technical-reset",
-    title: "F1 2026: The Most Radical Technical Reset Since Ground Effect — And What It Means for the Grid",
-    date: "2026-06-13",
-    series: "F1",
-    category: "Technical",
-    excerpt: "Formula 1's 2026 technical regulations represent the most structurally significant overhaul since the 2022 ground-effect reset. Active aero, 50% hybrid power, 30kg weight reduction — here's what actually changes and why it reshapes the competitive order.",
-    content: `
-      <p>Formula 1's 2026 technical regulations represent the most structurally significant overhaul since the 2022 ground-effect reset, and in several respects they go considerably further.</p>
-      <h2>Active Aerodynamics: The End of DRS</h2>
-      <p>The headline change is the introduction of full-time active aerodynamics. Both front and rear wings now continuously vary their angle of attack under direct control of the car's onboard systems, replacing the previous DRS — a binary, driver-actuated mechanism — with a genuinely dynamic aerodynamic platform.</p>
-      <p>The objective is to allow cars to run high-downforce configurations in corners while shedding drag on straights with far greater precision than DRS ever permitted. Theoretically this improves both lap times and overtaking opportunities without the artificial push-to-pass character of the outgoing system.</p>
-      <h2>The Power Unit Revolution: MGU-H Gone, Electrical Power Doubled</h2>
-      <p>On the power unit side, the elimination of the MGU-H is the most consequential architectural change. The Motor Generator Unit-Heat, which recovered energy from exhaust gases via the turbocharger shaft, was an extraordinarily complex and expensive component — a significant barrier to new manufacturers entering the sport.</p>
-      <p>Its removal simplifies the hybrid system substantially, concentrating energy recovery through the MGU-K and battery architecture. The trade-off — recovering less energy from waste heat — is offset by the dramatic upscaling of electrical deployment: hybrid systems now contribute approximately <strong>350 kW, representing roughly 50% of total power output</strong>.</p>
-      <p>That figure fundamentally alters the balance of the power unit, making electrical management, battery thermal performance, and deployment strategy as critical as combustion efficiency.</p>
-      <h2>30kg Weight Reduction: Ripple Effects Across Every Department</h2>
-      <p>The 30kg reduction in minimum weight is a direct consequence of the MGU-H's elimination and revised structural targets. Its implications ripple through every department: suspension geometry must be re-optimised, ballast strategies are completely revised, and driver weight becomes politically sensitive again.</p>
-      <p>For aerodynamicists, the interaction between front and rear wing states under braking, acceleration, and cornering loads creates a coupled optimisation problem unlike anything seen in F1 before. The control algorithms governing wing angle adjustment must be tuned circuit by circuit.</p>
-      <h2>Who Benefits — And Who Doesn't</h2>
-      <p>The teams that stand to benefit most immediately are those who invested early in electrical systems development and software control capability. The shift to 50% hybrid contribution rewards organisations with deep competence in power electronics, battery cell management, and energy deployment mapping.</p>
-      <p>Manufacturers with road-car electrification programmes carry a genuine structural advantage here. Conversely, <strong>teams relying on customer power units</strong> face a period of dependency on their suppliers' ability to optimise MGU-K and battery performance — a dynamic that could widen the midfield gap to the top in the early part of the season.</p>
-      <h2>The Bottom Line</h2>
-      <p>This is not an incremental update. The 2026 regulations reshape the competitive hierarchy from first principles. The question is not which team has the best car from 2025 — it is which organisation built the right capabilities for a fundamentally different technical challenge.</p>
-    `
-  }
-];
-
 function PLRLogo() {
   return (
     <svg viewBox="0 0 200 80" width="160" height="64" xmlns="http://www.w3.org/2000/svg">
@@ -199,7 +170,40 @@ function SubscribePage() {
   );
 }
 
+function useBlogPosts() {
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const indexRes = await fetch("/api/get-blog-index");
+        const indexData = await indexRes.json();
+        if (!indexData.posts) return;
+
+        const postPromises = indexData.posts.slice(0, 10).map(async (item) => {
+          const res = await fetch(`/api/get-blog-post?slug=${item.slug}`);
+          return await res.json();
+        });
+
+        const fetchedPosts = await Promise.all(postPromises);
+        setPosts(fetchedPosts.filter(p => p && p.slug));
+      } catch (e) {
+        console.error("Failed to load blog posts:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPosts();
+  }, []);
+
+  return { posts, loading };
+}
+
 function BlogListPage() {
+  const { posts, loading } = useBlogPosts();
+
   return (
     <div style={s.root}>
       <style>{css}</style>
@@ -212,12 +216,21 @@ function BlogListPage() {
         </div>
       </div>
       <main style={s.main}>
+        {loading && (
+          <div style={s.loadingState}>
+            <div style={s.loadingDot} className="pulse" />
+            <span style={s.loadingText}>Loading analysis...</span>
+          </div>
+        )}
+        {!loading && posts.length === 0 && (
+          <div style={s.errorBox}>No analysis published yet. Check back after the next weekly digest.</div>
+        )}
         <div style={bl.grid}>
-          {BLOG_POSTS.map(post => (
+          {posts.map(post => (
             <Link key={post.slug} to={`/blog/${post.slug}`} style={{ textDecoration: "none" }}>
               <article style={bl.card} className="news-card">
                 <div style={bl.cardMeta}>
-                  <span style={{ ...s.seriesTag, color: SERIES_COLORS[post.series], borderColor: `${SERIES_COLORS[post.series]}33` }}>
+                  <span style={{ ...s.seriesTag, color: SERIES_COLORS[post.series] || "#888", borderColor: `${SERIES_COLORS[post.series] || "#888"}33` }}>
                     {post.series}
                   </span>
                   <span style={s.categoryTag}>{CATEGORY_ICONS[post.category]} {post.category}</span>
@@ -238,9 +251,41 @@ function BlogListPage() {
 
 function BlogPostPage() {
   const { slug } = useParams();
-  const post = BLOG_POSTS.find(p => p.slug === slug);
+  const [post, setPost] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  if (!post) {
+  useEffect(() => {
+    const fetchPost = async () => {
+      try {
+        const res = await fetch(`/api/get-blog-post?slug=${slug}`);
+        const data = await res.json();
+        setPost(data);
+      } catch (e) {
+        console.error("Failed to load post:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPost();
+  }, [slug]);
+
+  if (loading) {
+    return (
+      <div style={s.root}>
+        <style>{css}</style>
+        <Header />
+        <main style={s.main}>
+          <div style={s.loadingState}>
+            <div style={s.loadingDot} className="pulse" />
+            <span style={s.loadingText}>Loading analysis...</span>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!post || !post.slug) {
     return (
       <div style={s.root}>
         <style>{css}</style>
@@ -262,7 +307,7 @@ function BlogPostPage() {
         <div style={bp.heroInner}>
           <Link to="/blog" style={bp.backLink}>← Analysis</Link>
           <div style={{ display: "flex", gap: 8, alignItems: "center", margin: "16px 0" }}>
-            <span style={{ ...s.seriesTag, color: SERIES_COLORS[post.series], borderColor: `${SERIES_COLORS[post.series]}33` }}>
+            <span style={{ ...s.seriesTag, color: SERIES_COLORS[post.series] || "#888", borderColor: `${SERIES_COLORS[post.series] || "#888"}33` }}>
               {post.series}
             </span>
             <span style={s.categoryTag}>{CATEGORY_ICONS[post.category]} {post.category}</span>
@@ -294,6 +339,7 @@ function HomePage() {
   const [error, setError] = useState(null);
   const [activeItem, setActiveItem] = useState(null);
   const [activeSeries, setActiveSeries] = useState(null);
+  const { posts: blogPosts } = useBlogPosts();
 
   useEffect(() => { loadDigest(); }, []);
 
@@ -394,12 +440,14 @@ function HomePage() {
                 );
               })}
             </div>
-            <div style={s.analysisTease}>
-              <div style={s.analysisTeaseLabel}>LATEST ANALYSIS</div>
-              <h3 style={s.analysisTeaseTitle}>{BLOG_POSTS[0].title}</h3>
-              <p style={s.analysisTeaseExcerpt}>{BLOG_POSTS[0].excerpt}</p>
-              <Link to={`/blog/${BLOG_POSTS[0].slug}`} style={s.analysisTeaseLink}>Read full analysis →</Link>
-            </div>
+            {blogPosts.length > 0 && (
+              <div style={s.analysisTease}>
+                <div style={s.analysisTeaseLabel}>LATEST ANALYSIS</div>
+                <h3 style={s.analysisTeaseTitle}>{blogPosts[0].title}</h3>
+                <p style={s.analysisTeaseExcerpt}>{blogPosts[0].excerpt}</p>
+                <Link to={`/blog/${blogPosts[0].slug}`} style={s.analysisTeaseLink}>Read full analysis →</Link>
+              </div>
+            )}
             <div style={s.subscribeCta}>
               <p style={s.subscribeTitle}>Want the full analysis?</p>
               <p style={s.subscribeText}>The newsletter includes technical deep-dives, historical context, who benefits and direct links to official regulation documents — every Monday in your inbox.</p>
