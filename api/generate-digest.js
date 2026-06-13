@@ -1,10 +1,12 @@
 import { put } from "@vercel/blob";
 import { Resend } from "resend";
 
-const SYSTEM_PROMPT_SHORT = `Return ONLY this JSON, no other text:
+const SYSTEM_PROMPT_SHORT = `You are a motorsport regulations analyst. You will be given real news search results about motorsport regulations. Extract ONLY real, verified regulatory updates from the search results provided. Do NOT invent or hallucinate any information.
+
+Return ONLY this JSON, no other text:
 {"digest_title":"string","digest_date":"string","summary":"string","items":[{"series":"string","headline":"string","detail":"string","impact":"LOW|MEDIUM|HIGH","category":"Technical|Sporting|Financial|Safety"}]}
 
-IMPORTANT: Use EXACTLY these series names: "F1", "MotoGP", "WRC", "Formula E", "NASCAR", "IndyCar". Never use "Formula 1" - always use "F1".`;
+IMPORTANT: Use EXACTLY these series names: "F1", "MotoGP", "WRC", "Formula E", "NASCAR", "IndyCar". Never use "Formula 1" - always use "F1". Only include items based on real information from the search results provided.`;
 
 const SERIES_SOURCES = {
   "F1": { label: "FIA Formula 1 Regulations", url: "https://www.fia.com/regulation/category/110" },
@@ -15,7 +17,15 @@ const SERIES_SOURCES = {
   "IndyCar": { label: "IndyCar Rules", url: "https://www.indycar.com/Info/Rules" },
 };
 
-// Normalize series names from AI output
+const SEARCH_QUERIES = [
+  "F1 Formula 1 regulation technical directive 2026 2025",
+  "MotoGP regulation technical rule change 2025 2026",
+  "WRC regulation rule change 2025",
+  "Formula E regulation rule change 2025 2026",
+  "NASCAR rule change regulation 2025",
+  "IndyCar regulation rule change 2025",
+];
+
 function normalizeSeries(series) {
   const map = {
     "Formula 1": "F1",
@@ -30,6 +40,27 @@ function normalizeSeries(series) {
     "Nascar": "NASCAR",
   };
   return map[series] || series;
+}
+
+async function searchWeb(query) {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": process.env.VITE_ANTHROPIC_KEY,
+      "anthropic-version": "2023-06-01",
+      "anthropic-beta": "web-search-2025-03-05",
+    },
+    body: JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 1000,
+      tools: [{ type: "web_search_20250305", name: "web_search" }],
+      messages: [{ role: "user", content: `Search for recent motorsport regulation news: ${query}. Summarize the most recent and relevant regulatory updates you find in 2-3 sentences.` }],
+    }),
+  });
+  const data = await res.json();
+  const text = data.content?.filter(b => b.type === "text").map(b => b.text).join("\n") || "";
+  return text;
 }
 
 export default async function handler(req, res) {
@@ -47,7 +78,15 @@ export default async function handler(req, res) {
   const today = `${day} ${month} ${year}`;
 
   try {
-    // Step 1 — Generate short version for website
+    // Step 1 — Search for real regulation news
+    const searchResults = [];
+    for (const query of SEARCH_QUERIES) {
+      const result = await searchWeb(query);
+      if (result) searchResults.push(`[${query}]:\n${result}`);
+    }
+    const combinedSearchResults = searchResults.join("\n\n---\n\n");
+
+    // Step 2 — Generate digest based on real search results
     const shortRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -59,7 +98,7 @@ export default async function handler(req, res) {
         model: "claude-haiku-4-5-20251001",
         max_tokens: 1500,
         system: SYSTEM_PROMPT_SHORT,
-        messages: [{ role: "user", content: `Today is ${today}. Write a motorsport regulations digest for F1, MotoGP, WRC, Formula E, NASCAR, IndyCar. Use digest_date: "${isoDate}". Always use "F1" not "Formula 1". Return ONLY valid JSON.` }],
+        messages: [{ role: "user", content: `Today is ${today}. Based ONLY on these real search results, write a motorsport regulations digest. Use digest_date: "${isoDate}". Always use "F1" not "Formula 1". Only include items that are based on real information from these results. Return ONLY valid JSON.\n\nSEARCH RESULTS:\n${combinedSearchResults}` }],
       }),
     });
 
@@ -67,25 +106,24 @@ export default async function handler(req, res) {
     const shortRaw = shortData.content?.find(b => b.type === "text")?.text || "";
     let shortDigest = JSON.parse(shortRaw.replace(/```json|```/g, "").trim());
 
-    // Normalize series names
     shortDigest.items = shortDigest.items.map(item => ({
       ...item,
       series: normalizeSeries(item.series)
     }));
 
-    // Step 2 — Save short version to Blob
+    // Step 3 — Save short version to Blob
     await put("digest/latest.json", JSON.stringify(shortDigest), {
       access: "public",
       contentType: "application/json",
       addRandomSuffix: false,
     });
 
-    // Step 3 — Build digest summary for newsletter
+    // Step 4 — Build digest summary for newsletter
     const digestSummary = shortDigest.items.map((item, i) =>
       `${i+1}. [${item.series}] ${item.headline} (${item.category}, ${item.impact})\n   ${item.detail}`
     ).join("\n\n");
 
-    // Step 4 — Generate newsletter
+    // Step 5 — Generate newsletter
     const newsletterRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -94,9 +132,9 @@ export default async function handler(req, res) {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-5",
+        model: "claude-sonnet-4-6",
         max_tokens: 8000,
-        system: `You are a senior motorsport regulations analyst. Write analytically for engineers and team managers. Return HTML with inline styles only. DO NOT include any URLs or links.`,
+        system: `You are a senior motorsport regulations analyst. Write analytically for engineers and team managers. Return HTML with inline styles only. DO NOT include any URLs or links. Only write about real regulatory updates based on the information provided.`,
         messages: [{ role: "user", content: `Today is ${today}. Write the PitLane Regs weekly newsletter.
 
 Expand ALL ${shortDigest.items.length} stories below. Cover every single one — do not skip any:
@@ -122,14 +160,14 @@ End with a short "What to watch" paragraph. DO NOT include any URLs.` }],
     const newsletterData = await newsletterRes.json();
     const newsletterHtml = newsletterData.content?.find(b => b.type === "text")?.text || "<p>Newsletter generation failed</p>";
 
-    // Step 5 — Source links for series in digest
+    // Step 6 — Source links
     const seriesInDigest = [...new Set(shortDigest.items.map(i => i.series))];
     const sourceLinksHtml = seriesInDigest
       .filter(s => SERIES_SOURCES[s])
       .map(s => `<a href="${SERIES_SOURCES[s].url}" style="display:inline-block;font-family:monospace;font-size:11px;color:#E8002D;text-decoration:none;border:1px solid #E8002D44;padding:5px 12px;margin:4px 6px 4px 0">${s} ↗</a>`)
       .join("");
 
-    // Step 6 — Build email
+    // Step 7 — Build email
     const emailHtml = `<!DOCTYPE html>
 <html>
 <body style="font-family:Georgia,serif;max-width:680px;margin:0 auto;padding:32px 24px;background:#fff;color:#222">
@@ -153,7 +191,7 @@ End with a short "What to watch" paragraph. DO NOT include any URLs.` }],
 </body>
 </html>`;
 
-    // Step 7 — Send email
+    // Step 8 — Send email
     const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
       from: "PitLane Regs <onboarding@resend.dev>",
@@ -164,7 +202,7 @@ End with a short "What to watch" paragraph. DO NOT include any URLs.` }],
 
     return res.status(200).json({
       success: true,
-      message: "Digest generated, saved and email sent",
+      message: "Digest generated from real sources, saved and email sent",
       items: shortDigest.items?.length,
     });
 
