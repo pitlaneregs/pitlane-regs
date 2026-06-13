@@ -1,4 +1,4 @@
-import { put } from "@vercel/blob";
+import { put, list } from "@vercel/blob";
 import { Resend } from "resend";
 
 const SYSTEM_PROMPT_SHORT = `You are a motorsport regulations analyst. You will be given real news search results about motorsport regulations. Extract ONLY real, verified regulatory updates from the search results provided. Do NOT invent or hallucinate any information.
@@ -25,6 +25,15 @@ const SEARCH_QUERIES = [
   "NASCAR rule change regulation 2025",
   "IndyCar regulation rule change 2025",
 ];
+
+const SERIES_COLORS = {
+  "F1": "#E8002D",
+  "MotoGP": "#FF6B35",
+  "WRC": "#00A650",
+  "Formula E": "#00BFFF",
+  "NASCAR": "#FFD700",
+  "IndyCar": "#0066CC",
+};
 
 function normalizeSeries(series) {
   const map = {
@@ -61,6 +70,15 @@ async function searchWeb(query) {
   const data = await res.json();
   const text = data.content?.filter(b => b.type === "text").map(b => b.text).join("\n") || "";
   return text;
+}
+
+function generateSlug(title) {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 80);
 }
 
 export default async function handler(req, res) {
@@ -123,7 +141,7 @@ export default async function handler(req, res) {
       `${i+1}. [${item.series}] ${item.headline} (${item.category}, ${item.impact})\n   ${item.detail}`
     ).join("\n\n");
 
-    // Step 5 — Generate newsletter
+    // Step 5 — Generate newsletter HTML
     const newsletterRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -142,7 +160,7 @@ Expand ALL ${shortDigest.items.length} stories below. Cover every single one —
 ${digestSummary}
 
 For each story (keep each to 3-4 focused paragraphs):
-- What specifically changed and why (genuinely different information)  
+- What specifically changed and why
 - Technical implications for teams
 - Who benefits specifically
 
@@ -160,14 +178,97 @@ End with a short "What to watch" paragraph. DO NOT include any URLs.` }],
     const newsletterData = await newsletterRes.json();
     const newsletterHtml = newsletterData.content?.find(b => b.type === "text")?.text || "<p>Newsletter generation failed</p>";
 
-    // Step 6 — Source links
+    // Step 6 — Generate blog post for each HIGH impact item
+    const highImpactItems = shortDigest.items.filter(item => item.impact === "HIGH");
+    const blogPostsGenerated = [];
+
+    for (const item of highImpactItems) {
+      const blogRes = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.VITE_ANTHROPIC_KEY,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 3000,
+          system: `You are a senior motorsport regulations analyst writing for PitLane Regs. Write in-depth technical analysis for engineers, team managers and serious enthusiasts. Focus on cost implications and accessibility impact where relevant. Return ONLY a JSON object with this structure:
+{"title":"string","excerpt":"string","content":"string (HTML)"}
+The content field must be valid HTML using only <h2>, <p>, <strong> tags. No links, no URLs.`,
+          messages: [{ role: "user", content: `Write a deep-dive blog post about this regulatory update:
+
+Series: ${item.series}
+Headline: ${item.headline}
+Category: ${item.category}
+Detail: ${item.detail}
+
+The post should be 600-800 words covering:
+1. What changed and why
+2. Technical implications
+3. Cost and accessibility impact (who can afford to comply, who cannot)
+4. Who benefits and who loses out
+5. Historical context if relevant
+
+Return ONLY valid JSON.` }],
+        }),
+      });
+
+      const blogData = await blogRes.json();
+      const blogRaw = blogData.content?.find(b => b.type === "text")?.text || "";
+
+      try {
+        const blogPost = JSON.parse(blogRaw.replace(/```json|```/g, "").trim());
+        const slug = generateSlug(blogPost.title);
+
+        const postData = {
+          slug,
+          title: blogPost.title,
+          date: isoDate,
+          series: item.series,
+          category: item.category,
+          excerpt: blogPost.excerpt,
+          content: blogPost.content,
+        };
+
+        // Save blog post to Blob
+        await put(`blog/${slug}.json`, JSON.stringify(postData), {
+          access: "public",
+          contentType: "application/json",
+          addRandomSuffix: false,
+        });
+
+        blogPostsGenerated.push(postData);
+      } catch (e) {
+        console.error("Blog post generation failed for:", item.headline, e.message);
+      }
+    }
+
+    // Step 7 — Update blog index
+    const { blobs } = await list({ prefix: "blog/" });
+    const blogIndex = blobs
+      .filter(b => b.pathname !== "blog/index.json")
+      .map(b => ({
+        slug: b.pathname.replace("blog/", "").replace(".json", ""),
+        url: b.url,
+        uploadedAt: b.uploadedAt,
+      }))
+      .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+
+    await put("blog/index.json", JSON.stringify(blogIndex), {
+      access: "public",
+      contentType: "application/json",
+      addRandomSuffix: false,
+    });
+
+    // Step 8 — Source links
     const seriesInDigest = [...new Set(shortDigest.items.map(i => i.series))];
     const sourceLinksHtml = seriesInDigest
       .filter(s => SERIES_SOURCES[s])
       .map(s => `<a href="${SERIES_SOURCES[s].url}" style="display:inline-block;font-family:monospace;font-size:11px;color:#E8002D;text-decoration:none;border:1px solid #E8002D44;padding:5px 12px;margin:4px 6px 4px 0">${s} ↗</a>`)
       .join("");
 
-    // Step 7 — Build email
+    // Step 9 — Build email
     const emailHtml = `<!DOCTYPE html>
 <html>
 <body style="font-family:Georgia,serif;max-width:680px;margin:0 auto;padding:32px 24px;background:#fff;color:#222">
@@ -191,7 +292,7 @@ End with a short "What to watch" paragraph. DO NOT include any URLs.` }],
 </body>
 </html>`;
 
-    // Step 8 — Send email
+    // Step 10 — Send email
     const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
       from: "PitLane Regs <onboarding@resend.dev>",
@@ -202,8 +303,10 @@ End with a short "What to watch" paragraph. DO NOT include any URLs.` }],
 
     return res.status(200).json({
       success: true,
-      message: "Digest generated from real sources, saved and email sent",
-      items: shortDigest.items?.length,
+      message: "Digest generated, blog posts created, email sent",
+      digestItems: shortDigest.items?.length,
+      blogPostsGenerated: blogPostsGenerated.length,
+      blogPosts: blogPostsGenerated.map(p => p.slug),
     });
 
   } catch (e) {
